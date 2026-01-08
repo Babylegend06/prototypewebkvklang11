@@ -26,6 +26,10 @@ WASAPBOT_API_URL = os.environ.get('WASAPBOT_API_URL', 'https://dash.wasapbot.my/
 WASAPBOT_INSTANCE_ID = os.environ.get('WASAPBOT_INSTANCE_ID', '609ACF283XXXX')
 WASAPBOT_ACCESS_TOKEN = os.environ.get('WASAPBOT_ACCESS_TOKEN', '695df3770b34a')
 
+DEMO_MODE = os.environ.get('DEMO_MODE', 'true').lower() == 'true'
+DEMO_CYCLE_SECONDS = 120
+PRODUCTION_CYCLE_SECONDS = 1800
+
 class Machine(BaseModel):
     model_config = ConfigDict(extra="ignore")
     machine_id: str
@@ -213,12 +217,14 @@ async def start_machine(machine_id: str, data: MachineStartRequest):
     if machine["status"] != "available":
         raise HTTPException(status_code=400, detail="Machine not available")
     
+    cycle_seconds = DEMO_CYCLE_SECONDS if DEMO_MODE else PRODUCTION_CYCLE_SECONDS
+    
     await db.machines.update_one(
         {"machine_id": machine_id},
         {"$set": {
             "status": "washing",
             "whatsapp_number": data.whatsapp_number,
-            "time_remaining": 180
+            "time_remaining": cycle_seconds
         }}
     )
     
@@ -247,7 +253,7 @@ async def start_machine(machine_id: str, data: MachineStartRequest):
     
     await send_whatsapp(
         data.whatsapp_number,
-        f"Smart Dobi: Mesin {machine_id} telah dimulakan! Basuhan akan siap dalam 3 minit. Anda akan menerima notifikasi."
+        f"Smart Dobi: Mesin {machine_id} start! Sila tunggu 30 minit. Anda akan menerima notifikasi apabila hampir siap. Terima kasih! 🧺"
     )
     
     return {"message": "Machine started", "transaction_id": transaction_id}
@@ -277,10 +283,28 @@ async def update_machine_status(machine_id: str, status: str, time_remaining: in
     if status == "available" and machine.get("whatsapp_number"):
         await send_whatsapp(
             machine["whatsapp_number"],
-            f"Smart Dobi: Mesin {machine_id} telah selesai! Sila ambil pakaian anda. Terima kasih! 🧺"
+            f"Smart Dobi: Mesin {machine_id} telah SIAP! Sila ambil pakaian anda sekarang. Terima kasih! 🧺✨"
         )
     
     return {"message": "Machine status updated"}
+
+@api_router.post("/machines/{machine_id}/reminder")
+async def send_reminder(machine_id: str):
+    """Send reminder WhatsApp (called by ESP32)"""
+    machine = await db.machines.find_one(
+        {"machine_id": machine_id},
+        {"_id": 0}
+    )
+    
+    if not machine or not machine.get("whatsapp_number"):
+        raise HTTPException(status_code=404, detail="Machine or WhatsApp not found")
+    
+    await send_whatsapp(
+        machine["whatsapp_number"],
+        f"Smart Dobi: MESIN {machine_id} HAMPIR SIAP DALAM 5 MINIT LAGI! Sila bersedia di mesin anda. Terima kasih! ⏰"
+    )
+    
+    return {"message": "Reminder sent"}
 
 @api_router.get("/transactions", response_model=List[Transaction])
 async def get_transactions(request: Request):
