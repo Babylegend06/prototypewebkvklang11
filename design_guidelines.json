@@ -1,0 +1,132 @@
+{
+  "identity": {
+    "persona": "E1: The Anti-AI Designer",
+    "mission": "Create a visceral, tactile laundry experience that merges physical machinery with digital fluidity. Reject standard SaaS templates.",
+    "principles": [
+      "Fusion: Industrial Machinery x Digital Glass",
+      "Emotion: Cleanliness, Efficiency, Trust",
+      "Content: Data is beautiful, Status is immediate",
+      "Zoom: Focus on the machine state",
+      "Negative Space: Breathable layouts for touch interaction"
+    ]
+  },
+  "typography": {
+    "primary_font": {
+      "name": "Fredoka One",
+      "url": "https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap",
+      "usage": "Headings, Machine Numbers, Status States (Kiosk Only)",
+      "class": "font-['Fredoka_One']"
+    },
+    "secondary_font": {
+      "name": "Manrope",
+      "url": "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap",
+      "usage": "Body text, Instructions, Dashboard Data",
+      "class": "font-['Manrope']"
+    },
+    "dashboard_mono": {
+      "name": "JetBrains Mono",
+      "url": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap",
+      "usage": "Transaction IDs, Timestamps, API Logs",
+      "class": "font-['JetBrains_Mono']"
+    }
+  },
+  "colors": {
+    "kiosk_theme": {
+      "mode": "light",
+      "background": "bg-gradient-to-br from-blue-50 via-white to-cyan-50",
+      "glass_surface": "bg-white/40 backdrop-blur-xl border border-white/50 shadow-xl",
+      "text_primary": "text-slate-800",
+      "text_secondary": "text-slate-500",
+      "accent_primary": "bg-cyan-500 hover:bg-cyan-400 text-white",
+      "status_available": "text-emerald-600 bg-emerald-100/50 border-emerald-200",
+      "status_busy": "text-amber-600 bg-amber-100/50 border-amber-200",
+      "status_broken": "text-rose-600 bg-rose-100/50 border-rose-200"
+    },
+    "dashboard_theme": {
+      "mode": "dark",
+      "background": "bg-slate-950",
+      "surface": "bg-slate-900/50 border border-slate-800",
+      "text_primary": "text-slate-50",
+      "text_secondary": "text-slate-400",
+      "accent_primary": "bg-indigo-600 hover:bg-indigo-500 text-white",
+      "chart_colors": ["#3b82f6", "#10b981", "#f59e0b", "#ef4444"]
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": {
+      "css_rule": "backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);",
+      "border_strategy": "1px solid rgba(255, 255, 255, 0.3)"
+    },
+    "shadows": {
+      "soft_lift": "shadow-[0_8px_30px_rgb(0,0,0,0.04)]",
+      "neon_glow": "shadow-[0_0_15px_rgba(6,182,212,0.5)]"
+    },
+    "gradients": {
+      "bubble_overlay": "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%)"
+    }
+  },
+  "image_urls": {
+    "hero_background": {
+      "url": "https://images.unsplash.com/photo-1643960988248-53fd45e0a3af?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "desc": "Clean, modern laundry room background for Kiosk Home"
+    },
+    "machine_icons": {
+      "front_load_active": "https://images.unsplash.com/photo-1644534221933-81d98fe28bf7?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "front_load_idle": "https://images.unsplash.com/photo-1592502712785-9cca412cac87?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "dryer": "https://images.unsplash.com/photo-1602770199032-dc058e3dbed0?crop=entropy&cs=srgb&fm=jpg&q=85"
+    },
+    "payment": {
+      "qr_code_placeholder": "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=SmartDobiPaymentSim",
+      "whatsapp_logo": "https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"
+    }
+  },
+  "components": {
+    "KioskMachineCard": {
+      "path": "/app/frontend/src/components/kiosk/MachineCard.js",
+      "style": "Glassmorphism card. Large status indicator. 'Fredoka One' for machine number. Ripple effect on click.",
+      "props": ["id", "status", "timeRemaining", "type"]
+    },
+    "PaymentModal": {
+      "path": "/app/frontend/src/components/kiosk/PaymentModal.js",
+      "style": "Full screen overlay with blur. Central QR code. Large 'Confirm' button.",
+      "props": ["machineId", "amount", "onConfirm"]
+    },
+    "DashboardStatCard": {
+      "path": "/app/frontend/src/components/dashboard/StatCard.js",
+      "style": "Dark mode, slate-900 bg. Neon accent border on top. Big number.",
+      "props": ["title", "value", "trend", "icon"]
+    },
+    "DashboardChart": {
+      "path": "/app/frontend/src/components/dashboard/RevenueChart.js",
+      "style": "Recharts responsive container. Dark theme tooltip. Minimal grid lines.",
+      "props": ["data", "period"]
+    }
+  },
+  "layouts": {
+    "KioskLayout": {
+      "structure": "Mobile-first. 100vh container. Grid layout (Bento) for machines. Bottom navigation bar for 'Help' or 'Language'.",
+      "spacing": "p-6 gap-6"
+    },
+    "DashboardLayout": {
+      "structure": "Sidebar (collapsible on mobile) + Main Content Area. Top bar with User Profile.",
+      "spacing": "p-8 gap-8"
+    }
+  },
+  "instructions_to_main_agent": [
+    "1. INSTALL FONTS: Add the Google Fonts links for Fredoka One, Manrope, and JetBrains Mono to public/index.html immediately.",
+    "2. SETUP THEMES: Configure tailwind.config.js to support the 'dark' class strategy effectively, but use specific color classes for the Kiosk (light) vs Dashboard (dark) separation.",
+    "3. GLASSMORPHISM: Create a utility class or component wrapper for the 'Glass' effect to ensure consistency.",
+    "4. ANIMATION: Use 'framer-motion' for page transitions (Kiosk needs to feel like a native app).",
+    "5. MOCK DATA: Create a robust mock data file for machines and transactions since backend might be simulated initially.",
+    "6. NOTIFICATIONS: Use 'sonner' for toast notifications (e.g., 'WhatsApp sent!').",
+    "7. ICONS: Use 'lucide-react' for UI icons (WashingMachine, QrCode, Activity, DollarSign)."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Do not use gradients for dark colors.",
+    "Avoid generic centered layouts; use grids.",
+    "Create depth with z-index and shadows.",
+    "Use 'sonner' for toasts.",
+    "All interactive elements must have data-testid attributes.",
+    "Use named exports for components, default exports for pages."
+  ]
+}
