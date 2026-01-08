@@ -212,40 +212,71 @@ export default function OwnerDashboard() {
             animate={{ opacity: 1, x: 0 }}
             className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6"
           >
-            <h3 className="text-slate-50 font-semibold text-lg mb-4">Status Mesin</h3>
+            <h3 className="text-slate-50 font-semibold text-lg mb-4">Status Mesin & Control</h3>
             <div className="space-y-3">
               {machines.map((machine) => (
                 <div
                   key={machine.machine_id}
-                  className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg"
+                  className="p-4 bg-slate-800/50 rounded-lg"
                   data-testid={`dashboard-machine-${machine.machine_id}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center">
-                      <span className="fredoka text-white">{machine.machine_id}</span>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center">
+                        <span className="fredoka text-white">{machine.machine_id}</span>
+                      </div>
+                      <div>
+                        <p className="text-slate-300 font-medium">Mesin {machine.machine_id}</p>
+                        <p className="text-slate-500 text-sm capitalize">{machine.machine_type}</p>
+                      </div>
                     </div>
                     <div>
-                      <p className="text-slate-300 font-medium">Mesin {machine.machine_id}</p>
-                      <p className="text-slate-500 text-sm capitalize">{machine.machine_type}</p>
+                      {machine.status === 'available' && (
+                        <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-sm">
+                          Tersedia
+                        </span>
+                      )}
+                      {machine.status === 'washing' && (
+                        <span className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded-full text-sm">
+                          Sedang Basuh
+                        </span>
+                      )}
+                      {machine.status === 'broken' && (
+                        <span className="px-3 py-1 bg-rose-500/20 text-rose-400 rounded-full text-sm">
+                          Under Maintenance
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div>
-                    {machine.status === 'available' && (
-                      <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-sm">
-                        Tersedia
-                      </span>
-                    )}
-                    {machine.status === 'washing' && (
-                      <span className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded-full text-sm">
-                        Sedang Basuh
-                      </span>
-                    )}
-                    {machine.status === 'broken' && (
-                      <span className="px-3 py-1 bg-rose-500/20 text-rose-400 rounded-full text-sm">
-                        Rosak
-                      </span>
-                    )}
-                  </div>
+                  
+                  {machine.status !== 'washing' && (
+                    <div className="flex gap-2">
+                      {machine.status === 'available' && (
+                        <button
+                          onClick={() => handleMachineStatusChange(machine.machine_id, 'broken')}
+                          className="flex-1 px-3 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 rounded-lg text-sm transition-colors"
+                          data-testid={`set-broken-${machine.machine_id}`}
+                        >
+                          Set Maintenance
+                        </button>
+                      )}
+                      {machine.status === 'broken' && (
+                        <button
+                          onClick={() => handleMachineStatusChange(machine.machine_id, 'available')}
+                          className="flex-1 px-3 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-lg text-sm transition-colors"
+                          data-testid={`set-available-${machine.machine_id}`}
+                        >
+                          Set Available
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  
+                  {machine.status === 'washing' && (
+                    <div className="text-slate-500 text-sm text-center py-2">
+                      Cannot change status while washing
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
