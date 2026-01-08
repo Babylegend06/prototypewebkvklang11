@@ -321,6 +321,7 @@ def main():
     tester.test_whatsapp_validation()
     tester.test_unauthorized_access()
     tester.test_data_integrity()
+    tester.test_esp32_simulation()
     
     # Try to create session for protected tests
     if tester.create_test_session():
