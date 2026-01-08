@@ -20,6 +20,7 @@ function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<KioskHome />} />
+      <Route path="/instructions" element={<InstructionsPage />} />
       <Route path="/payment/:machineId" element={<PaymentPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route 
