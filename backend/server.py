@@ -26,10 +26,6 @@ WASAPBOT_API_URL = os.environ.get('WASAPBOT_API_URL', 'https://dash.wasapbot.my/
 WASAPBOT_INSTANCE_ID = os.environ.get('WASAPBOT_INSTANCE_ID', '609ACF283XXXX')
 WASAPBOT_ACCESS_TOKEN = os.environ.get('WASAPBOT_ACCESS_TOKEN', '695df3770b34a')
 
-DEMO_MODE = os.environ.get('DEMO_MODE', 'true').lower() == 'true'
-DEMO_CYCLE_SECONDS = 120
-PRODUCTION_CYCLE_SECONDS = 1800
-
 class Machine(BaseModel):
     model_config = ConfigDict(extra="ignore")
     machine_id: str
@@ -42,6 +38,9 @@ class Machine(BaseModel):
 class MachineStartRequest(BaseModel):
     whatsapp_number: str
     amount: float
+
+class MachineStatusUpdate(BaseModel):
+    status: str
 
 class Transaction(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -160,22 +159,6 @@ async def get_machines():
                 "time_remaining": 0,
                 "machine_type": "washer",
                 "price": 5.00
-            },
-            {
-                "machine_id": "3",
-                "status": "broken",
-                "whatsapp_number": None,
-                "time_remaining": 0,
-                "machine_type": "washer",
-                "price": 5.00
-            },
-            {
-                "machine_id": "4",
-                "status": "broken",
-                "whatsapp_number": None,
-                "time_remaining": 0,
-                "machine_type": "dryer",
-                "price": 4.00
             }
         ]
         await db.machines.insert_many(default_machines)
@@ -198,7 +181,7 @@ async def get_machine(machine_id: str):
 
 @api_router.post("/machines/{machine_id}/start")
 async def start_machine(machine_id: str, data: MachineStartRequest):
-    """Start washing cycle"""
+    """Start washing cycle - ESP32 will set the timer"""
     cleaned_number = data.whatsapp_number.replace(" ", "").replace("-", "").replace("+", "")
     if not cleaned_number.isdigit() or len(cleaned_number) < 10 or len(cleaned_number) > 15:
         raise HTTPException(
@@ -217,14 +200,12 @@ async def start_machine(machine_id: str, data: MachineStartRequest):
     if machine["status"] != "available":
         raise HTTPException(status_code=400, detail="Machine not available")
     
-    cycle_seconds = DEMO_CYCLE_SECONDS if DEMO_MODE else PRODUCTION_CYCLE_SECONDS
-    
     await db.machines.update_one(
         {"machine_id": machine_id},
         {"$set": {
             "status": "washing",
             "whatsapp_number": data.whatsapp_number,
-            "time_remaining": cycle_seconds
+            "time_remaining": 0
         }}
     )
     
@@ -260,7 +241,7 @@ async def start_machine(machine_id: str, data: MachineStartRequest):
 
 @api_router.put("/machines/{machine_id}/status")
 async def update_machine_status(machine_id: str, status: str, time_remaining: int = 0):
-    """Update machine status (for ESP32)"""
+    """Update machine status and timer (called by ESP32)"""
     machine = await db.machines.find_one(
         {"machine_id": machine_id},
         {"_id": 0}
@@ -272,6 +253,11 @@ async def update_machine_status(machine_id: str, status: str, time_remaining: in
     update_data = {"status": status, "time_remaining": time_remaining}
     
     if status == "available":
+        if machine.get("whatsapp_number"):
+            await send_whatsapp(
+                machine["whatsapp_number"],
+                f"Smart Dobi: Mesin {machine_id} telah SIAP! Sila ambil pakaian anda sekarang. Terima kasih! 🧺✨"
+            )
         update_data["whatsapp_number"] = None
         update_data["time_remaining"] = 0
     
@@ -279,12 +265,6 @@ async def update_machine_status(machine_id: str, status: str, time_remaining: in
         {"machine_id": machine_id},
         {"$set": update_data}
     )
-    
-    if status == "available" and machine.get("whatsapp_number"):
-        await send_whatsapp(
-            machine["whatsapp_number"],
-            f"Smart Dobi: Mesin {machine_id} telah SIAP! Sila ambil pakaian anda sekarang. Terima kasih! 🧺✨"
-        )
     
     return {"message": "Machine status updated"}
 
@@ -305,6 +285,39 @@ async def send_reminder(machine_id: str):
     )
     
     return {"message": "Reminder sent"}
+
+@api_router.patch("/machines/{machine_id}/admin-status")
+async def admin_update_status(machine_id: str, data: MachineStatusUpdate, request: Request):
+    """Update machine status by owner (admin only)"""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    machine = await db.machines.find_one(
+        {"machine_id": machine_id},
+        {"_id": 0}
+    )
+    
+    if not machine:
+        raise HTTPException(status_code=404, detail="Machine not found")
+    
+    if data.status not in ["available", "broken"]:
+        raise HTTPException(status_code=400, detail="Invalid status. Use 'available' or 'broken'")
+    
+    update_data = {"status": data.status}
+    if data.status == "available":
+        update_data["time_remaining"] = 0
+        update_data["whatsapp_number"] = None
+    elif data.status == "broken":
+        update_data["time_remaining"] = 0
+        update_data["whatsapp_number"] = None
+    
+    await db.machines.update_one(
+        {"machine_id": machine_id},
+        {"$set": update_data}
+    )
+    
+    return {"message": f"Machine {machine_id} status updated to {data.status}"}
 
 @api_router.get("/transactions", response_model=List[Transaction])
 async def get_transactions(request: Request):
