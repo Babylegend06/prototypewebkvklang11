@@ -22,7 +22,7 @@ db = client[os.environ['DB_NAME']]
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
-WASAPBOT_API_URL = "https://dash.wasapbot.my/api/send"
+WASAPBOT_API_URL = os.environ.get('WASAPBOT_API_URL', 'https://dash.wasapbot.my/whatsapp_api')
 WASAPBOT_INSTANCE_ID = os.environ.get('WASAPBOT_INSTANCE_ID', '609ACF283XXXX')
 WASAPBOT_ACCESS_TOKEN = os.environ.get('WASAPBOT_ACCESS_TOKEN', '695df3770b34a')
 
@@ -82,6 +82,7 @@ async def send_whatsapp(number: str, message: str):
                 "access_token": WASAPBOT_ACCESS_TOKEN
             }
             response = await client.get(WASAPBOT_API_URL, params=params, timeout=10.0)
+            logging.info(f"WhatsApp API response: {response.status_code} - {response.text}")
             return response.status_code == 200
     except Exception as e:
         logging.error(f"WhatsApp send error: {e}")
@@ -155,6 +156,22 @@ async def get_machines():
                 "time_remaining": 0,
                 "machine_type": "washer",
                 "price": 5.00
+            },
+            {
+                "machine_id": "3",
+                "status": "broken",
+                "whatsapp_number": None,
+                "time_remaining": 0,
+                "machine_type": "washer",
+                "price": 5.00
+            },
+            {
+                "machine_id": "4",
+                "status": "broken",
+                "whatsapp_number": None,
+                "time_remaining": 0,
+                "machine_type": "dryer",
+                "price": 4.00
             }
         ]
         await db.machines.insert_many(default_machines)
