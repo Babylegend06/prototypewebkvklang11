@@ -1,17 +1,474 @@
 /*
- * Smart Dobi ESP32 S3 Firmware
- * Hardware: 1 Button + 1 Relay + 1 LED per machine (2 machines)
+ * Smart Dobi ESP32 S3 Firmware - TIMER MASTER
  * 
- * Features:
- * - 30 minit wash cycle (1800 seconds)
- * - WhatsApp notifications via WasapBot.my
- * - LED mati bila mesin siap
- * - Button untuk manual control (optional)
+ * Hardware per machine:
+ * - 1x Button START (GPIO 16/17)
+ * - 1x Relay (GPIO 18/21)
+ * - 1x LED (GPIO 19/22)
+ * 
+ * LED States:
+ * - OFF: Machine available (idle)
+ * - BLINKING: Payment done, waiting for customer to masuk baju & tekan START
+ * - SOLID ON: Machine running (washing)
+ * - OFF: Complete (siap)
+ * 
+ * Timer Flow:
+ * 1. Payment done → ESP32 detect → LED BLINK
+ * 2. Customer masuk baju → Tekan START button
+ * 3. ESP32 start timer (120s demo / 1800s production)
+ * 4. ESP32 update timer to backend every 2 seconds
+ * 5. Web ambil timer from backend every 2 seconds
  */
 
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
+// ==================== CONFIGURATION ====================
+
 // WiFi Credentials
-const char* WIFI_SSID = \"YOUR_WIFI_SSID\";\nconst char* WIFI_PASSWORD = \"YOUR_WIFI_PASSWORD\";\n\n// Backend API Configuration\nconst char* BACKEND_URL = \"YOUR_BACKEND_URL\";  // Example: https://dobi-alert.preview.emergentagent.com\nconst char* API_BASE = \"/api\";\n\n// WasapBot.my Configuration\nconst char* WASAPBOT_URL = \"https://dash.wasapbot.my/whatsapp_api\";\nconst char* WASAPBOT_INSTANCE_ID = \"YOUR_INSTANCE_ID\";\nconst char* WASAPBOT_ACCESS_TOKEN = \"YOUR_ACCESS_TOKEN\";\n\n// Pin Configuration for Machine 1\nconst int BUTTON_1 = 16;   // Button untuk Machine 1\nconst int RELAY_1 = 18;    // Relay untuk Machine 1\nconst int LED_1 = 19;      // LED untuk Machine 1\n\n// Pin Configuration for Machine 2\nconst int BUTTON_2 = 17;   // Button untuk Machine 2\nconst int RELAY_2 = 21;    // Relay untuk Machine 2\nconst int LED_2 = 22;      // LED untuk Machine 2\n\n// Machine States\nstruct MachineState {\n  String machineId;\n  String status;\n  String whatsappNumber;\n  int timeRemaining;\n  int buttonPin;\n  int relayPin;\n  int ledPin;\n  bool isRunning;\n  unsigned long startTime;\n  bool reminderSent;\n  bool lastButtonState;\n};\n\nMachineState machine1 = {\"1\", \"available\", \"\", 0, BUTTON_1, RELAY_1, LED_1, false, 0, false, HIGH};\nMachineState machine2 = {\"2\", \"available\", \"\", 0, BUTTON_2, RELAY_2, LED_2, false, 0, false, HIGH};\n\nunsigned long lastPollTime = 0;\nconst unsigned long POLL_INTERVAL = 2000; // Poll every 2 seconds\nconst unsigned long CYCLE_TIME = 1800; // 30 minit = 1800 seconds\nconst unsigned long REMINDER_TIME = 1500; // Reminder at 25 min (5 min remaining)\n\nvoid setup() {\n  Serial.begin(115200);\n  Serial.println(\"\\n\\n=== Smart Dobi ESP32 S3 Startup ===\");\n  \n  // Initialize button pins (INPUT_PULLUP)\n  pinMode(BUTTON_1, INPUT_PULLUP);\n  pinMode(BUTTON_2, INPUT_PULLUP);\n  \n  // Initialize relay and LED pins\n  pinMode(RELAY_1, OUTPUT);\n  pinMode(LED_1, OUTPUT);\n  pinMode(RELAY_2, OUTPUT);\n  pinMode(LED_2, OUTPUT);\n  \n  // Set all relays OFF and LEDs OFF initially\n  digitalWrite(RELAY_1, LOW);\n  digitalWrite(RELAY_2, LOW);\n  digitalWrite(LED_1, LOW);\n  digitalWrite(LED_2, LOW);\n  \n  // Connect to WiFi\n  connectToWiFi();\n  \n  Serial.println(\"Smart Dobi Ready!\");\n  Serial.println(\"================================\\n\");\n}\n\nvoid loop() {\n  // Check WiFi connection\n  if (WiFi.status() != WL_CONNECTED) {\n    Serial.println(\"WiFi disconnected. Reconnecting...\");\n    connectToWiFi();\n  }\n  \n  // Poll backend every 2 seconds\n  if (millis() - lastPollTime >= POLL_INTERVAL) {\n    lastPollTime = millis();\n    checkMachineStatus(&machine1);\n    checkMachineStatus(&machine2);\n  }\n  \n  // Check manual buttons\n  checkButton(&machine1);\n  checkButton(&machine2);\n  \n  // Update machine cycles\n  updateMachineCycle(&machine1);\n  updateMachineCycle(&machine2);\n  \n  // Update LED status\n  updateLEDStatus(&machine1);\n  updateLEDStatus(&machine2);\n  \n  delay(100);\n}\n\nvoid connectToWiFi() {\n  Serial.print(\"Connecting to WiFi: \");\n  Serial.println(WIFI_SSID);\n  \n  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);\n  \n  int attempts = 0;\n  while (WiFi.status() != WL_CONNECTED && attempts < 20) {\n    delay(500);\n    Serial.print(\".\");\n    attempts++;\n  }\n  \n  if (WiFi.status() == WL_CONNECTED) {\n    Serial.println(\"\\nWiFi Connected!\");\n    Serial.print(\"IP Address: \");\n    Serial.println(WiFi.localIP());\n  } else {\n    Serial.println(\"\\nWiFi Connection Failed!\");\n  }\n}\n\nvoid checkButton(MachineState* machine) {\n  bool currentButtonState = digitalRead(machine->buttonPin);\n  \n  // Button pressed (LOW because of INPUT_PULLUP)\n  if (currentButtonState == LOW && machine->lastButtonState == HIGH) {\n    delay(50); // Debounce\n    if (digitalRead(machine->buttonPin) == LOW) {\n      Serial.println(\"Button pressed for Machine \" + machine->machineId);\n      \n      if (machine->status == \"available\") {\n        // Start machine manually\n        Serial.println(\"Manual start - Machine \" + machine->machineId);\n        // You can add manual start logic here if needed\n      } else if (machine->status == \"washing\") {\n        Serial.println(\"Machine \" + machine->machineId + \" is already running\");\n      }\n    }\n  }\n  \n  machine->lastButtonState = currentButtonState;\n}\n\nvoid checkMachineStatus(MachineState* machine) {\n  if (WiFi.status() != WL_CONNECTED) return;\n  \n  HTTPClient http;\n  String url = String(BACKEND_URL) + String(API_BASE) + \"/machines/\" + machine->machineId;\n  \n  http.begin(url);\n  int httpCode = http.GET();\n  \n  if (httpCode == 200) {\n    String payload = http.getString();\n    DynamicJsonDocument doc(1024);\n    deserializeJson(doc, payload);\n    \n    String newStatus = doc[\"status\"].as<String>();\n    String newWhatsapp = doc[\"whatsapp_number\"] | \"\";\n    \n    // Detect status change to \"washing\"\n    if (newStatus == \"washing\" && machine->status != \"washing\") {\n      Serial.println(\"Machine \" + machine->machineId + \" - Starting wash cycle!\");\n      machine->status = newStatus;\n      machine->whatsappNumber = newWhatsapp;\n      machine->isRunning = true;\n      machine->startTime = millis();\n      machine->reminderSent = false;\n      machine->timeRemaining = CYCLE_TIME;\n      \n      // Turn ON relay (start machine)\n      digitalWrite(machine->relayPin, HIGH);\n      Serial.println(\"Relay \" + String(machine->relayPin) + \" activated\");\n    } else {\n      machine->status = newStatus;\n    }\n  } else {\n    Serial.println(\"Error polling machine \" + machine->machineId + \": HTTP \" + String(httpCode));\n  }\n  \n  http.end();\n}\n\nvoid updateMachineCycle(MachineState* machine) {\n  if (!machine->isRunning) return;\n  \n  unsigned long elapsedSeconds = (millis() - machine->startTime) / 1000;\n  machine->timeRemaining = CYCLE_TIME - elapsedSeconds;\n  \n  // Send reminder at 25 minutes (5 minutes remaining)\n  if (elapsedSeconds >= REMINDER_TIME && !machine->reminderSent) {\n    machine->reminderSent = true;\n    sendReminderToBackend(machine->machineId);\n    Serial.println(\"Machine \" + machine->machineId + \" - Reminder sent (5 min remaining)\");\n  }\n  \n  // Complete cycle at 30 minutes\n  if (elapsedSeconds >= CYCLE_TIME) {\n    Serial.println(\"Machine \" + machine->machineId + \" - Wash cycle complete!\");\n    \n    // Turn OFF relay (stop machine)\n    digitalWrite(machine->relayPin, LOW);\n    Serial.println(\"Relay \" + String(machine->relayPin) + \" deactivated\");\n    \n    // Turn OFF LED (mesin siap, lampu mati)\n    digitalWrite(machine->ledPin, LOW);\n    Serial.println(\"LED \" + String(machine->ledPin) + \" turned OFF (machine complete)\");\n    \n    // Update backend status to \"available\"\n    updateBackendStatus(machine->machineId, \"available\", 0);\n    \n    // Reset machine state\n    machine->isRunning = false;\n    machine->status = \"available\";\n    machine->whatsappNumber = \"\";\n    machine->timeRemaining = 0;\n    machine->reminderSent = false;\n  }\n}\n\nvoid updateLEDStatus(MachineState* machine) {\n  if (machine->status == \"washing\") {\n    // LED ON bila washing\n    digitalWrite(machine->ledPin, HIGH);\n  } else if (machine->status == \"available\" && !machine->isRunning) {\n    // LED OFF bila available (siap)\n    digitalWrite(machine->ledPin, LOW);\n  }\n}\n\nvoid sendReminderToBackend(String machineId) {\n  if (WiFi.status() != WL_CONNECTED) return;\n  \n  HTTPClient http;\n  String url = String(BACKEND_URL) + String(API_BASE) + \"/machines/\" + machineId + \"/reminder\";\n  \n  http.begin(url);\n  int httpCode = http.POST(\"\");\n  \n  if (httpCode == 200) {\n    Serial.println(\"Reminder sent to backend for Machine \" + machineId);\n  } else {\n    Serial.println(\"Reminder send failed: HTTP \" + String(httpCode));\n  }\n  \n  http.end();\n}\n\nvoid updateBackendStatus(String machineId, String status, int timeRemaining) {\n  if (WiFi.status() != WL_CONNECTED) return;\n  \n  HTTPClient http;\n  String url = String(BACKEND_URL) + String(API_BASE) + \"/machines/\" + machineId + \"/status\" +\n               \"?status=\" + status + \"&time_remaining=\" + String(timeRemaining);\n  \n  http.begin(url);\n  int httpCode = http.sendRequest(\"PUT\");\n  \n  if (httpCode == 200) {\n    Serial.println(\"Backend status updated: Machine \" + machineId + \" -> \" + status);\n  } else {\n    Serial.println(\"Backend update failed: HTTP \" + String(httpCode));\n  }\n  \n  http.end();\n}\n\nString urlEncode(String str) {\n  String encoded = \"\";\n  char c;\n  for (int i = 0; i < str.length(); i++) {\n    c = str.charAt(i);\n    if (c == ' ') {\n      encoded += '+';\n    } else if (isalnum(c)) {\n      encoded += c;\n    } else {\n      encoded += '%';\n      if (c < 16) encoded += '0';\n      encoded += String(c, HEX);\n    }\n  }\n  return encoded;\n}\n\n/*\n * HARDWARE WIRING GUIDE:\n * \n * Machine 1:\n * - GPIO 16 -> Button 1 (with pull-up resistor or use INPUT_PULLUP)\n * - GPIO 18 -> Relay 1 IN\n * - GPIO 19 -> LED 1 (through 220Ω resistor)\n * \n * Machine 2:\n * - GPIO 17 -> Button 2 (with pull-up resistor or use INPUT_PULLUP)\n * - GPIO 21 -> Relay 2 IN\n * - GPIO 22 -> LED 2 (through 220Ω resistor)\n * \n * Power:\n * - ESP32 3.3V/5V -> Relay VCC (check relay voltage)\n * - ESP32 GND -> Common GND for all components\n * \n * CONFIGURATION STEPS:\n * 1. Update WiFi credentials (WIFI_SSID and WIFI_PASSWORD)\n * 2. Update BACKEND_URL dengan URL app anda\n * 3. Update WASAPBOT_INSTANCE_ID dan WASAPBOT_ACCESS_TOKEN\n * 4. Upload to ESP32 S3\n * 5. Open Serial Monitor (115200 baud)\n * \n * CYCLE TIMING:\n * - Total cycle: 30 minit (1800 seconds)\n * - Reminder: 25 minit (5 minit remaining)\n * - LED: ON during wash, OFF when complete\n * \n * WHATSAPP FLOW:\n * 1. Payment done -> \"Mesin start sila tunggu 30 minit\"\n * 2. 25 min elapsed -> \"MESIN X HAMPIR SIAP DALAM 5 MINIT LAGI\"\n * 3. 30 min done -> \"MESIN X SIAP! Sila ambil pakaian anda\"\n */\n
+const char* WIFI_SSID = "YOUR_WIFI_SSID";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+
+// Backend API Configuration
+const char* BACKEND_URL = "https://dobi-alert.preview.emergentagent.com";
+const char* API_BASE = "/api";
+
+// Mode Selection: true = DEMO (120s), false = PRODUCTION (1800s)
+const bool DEMO_MODE = true;
+const unsigned long DEMO_CYCLE_SECONDS = 120;      // 2 minutes
+const unsigned long PRODUCTION_CYCLE_SECONDS = 1800; // 30 minutes
+const unsigned long REMINDER_TIME_DEMO = 60;       // 1 minute remaining (demo)
+const unsigned long REMINDER_TIME_PROD = 1500;     // 5 minutes remaining (production)
+
+// Pin Configuration
+const int BUTTON_START_1 = 16;  // Button START Machine 1
+const int RELAY_1 = 18;         // Relay Machine 1
+const int LED_1 = 19;           // LED Machine 1
+
+const int BUTTON_START_2 = 17;  // Button START Machine 2
+const int RELAY_2 = 21;         // Relay Machine 2
+const int LED_2 = 22;           // LED Machine 2
+
+// ==================== MACHINE STATE ====================
+
+struct MachineState {
+  String machineId;
+  String status;
+  String whatsappNumber;
+  
+  // Hardware pins
+  int buttonPin;
+  int relayPin;
+  int ledPin;
+  
+  // Timer (ESP32 is MASTER)
+  unsigned long cycleSeconds;
+  unsigned long reminderSeconds;
+  unsigned long startTime;
+  int timeRemaining;
+  
+  // Flags
+  bool isRunning;
+  bool isWaitingStart;      // Payment done, waiting for START button
+  bool reminderSent;
+  bool lastButtonState;
+  
+  // LED blink
+  unsigned long lastBlinkTime;
+  bool ledBlinkState;
+};
+
+MachineState machine1 = {
+  "1", "available", "",
+  BUTTON_START_1, RELAY_1, LED_1,
+  0, 0, 0, 0,
+  false, false, false, HIGH,
+  0, false
+};
+
+MachineState machine2 = {
+  "2", "available", "",
+  BUTTON_START_2, RELAY_2, LED_2,
+  0, 0, 0, 0,
+  false, false, false, HIGH,
+  0, false
+};
+
+unsigned long lastPollTime = 0;
+unsigned long lastBackendUpdate = 0;
+const unsigned long POLL_INTERVAL = 2000;        // Poll backend every 2s
+const unsigned long BACKEND_UPDATE_INTERVAL = 2000; // Update backend every 2s
+const unsigned long LED_BLINK_INTERVAL = 500;    // LED blink every 500ms
+
+// ==================== SETUP ====================
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+  
+  Serial.println("\n\n╔════════════════════════════════════════╗");
+  Serial.println("║   SMART DOBI ESP32 S3 - TIMER MASTER  ║");
+  Serial.println("╚════════════════════════════════════════╝\n");
+  
+  // Set cycle time based on mode
+  unsigned long cycleTime = DEMO_MODE ? DEMO_CYCLE_SECONDS : PRODUCTION_CYCLE_SECONDS;
+  unsigned long reminderTime = DEMO_MODE ? REMINDER_TIME_DEMO : REMINDER_TIME_PROD;
+  
+  machine1.cycleSeconds = cycleTime;
+  machine1.reminderSeconds = reminderTime;
+  machine2.cycleSeconds = cycleTime;
+  machine2.reminderSeconds = reminderTime;
+  
+  Serial.printf("⚙️  Mode: %s\n", DEMO_MODE ? "DEMO (120s)" : "PRODUCTION (1800s)");
+  Serial.printf("⏱️  Cycle time: %lu seconds\n", cycleTime);
+  Serial.printf("🔔 Reminder at: %lu seconds elapsed\n\n", reminderTime);
+  
+  // Initialize pins
+  initializeMachine(&machine1);
+  initializeMachine(&machine2);
+  
+  // Connect to WiFi
+  connectToWiFi();
+  
+  Serial.println("\n✅ Smart Dobi Ready!\n");
+  Serial.println("════════════════════════════════════════\n");
+}
+
+void initializeMachine(MachineState* machine) {
+  pinMode(machine->buttonPin, INPUT_PULLUP);
+  pinMode(machine->relayPin, OUTPUT);
+  pinMode(machine->ledPin, OUTPUT);
+  
+  digitalWrite(machine->relayPin, LOW);
+  digitalWrite(machine->ledPin, LOW);
+  
+  Serial.printf("✓ Machine %s initialized\n", machine->machineId.c_str());
+  Serial.printf("  Button: GPIO%d | Relay: GPIO%d | LED: GPIO%d\n", 
+                machine->buttonPin, machine->relayPin, machine->ledPin);
+}
+
+// ==================== MAIN LOOP ====================
+
+void loop() {
+  // Check WiFi connection
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("⚠️  WiFi disconnected. Reconnecting...");
+    connectToWiFi();
+  }
+  
+  // Poll backend for status changes
+  if (millis() - lastPollTime >= POLL_INTERVAL) {
+    lastPollTime = millis();
+    checkBackendStatus(&machine1);
+    checkBackendStatus(&machine2);
+  }
+  
+  // Check START buttons
+  checkStartButton(&machine1);
+  checkStartButton(&machine2);
+  
+  // Update machine cycles & timers
+  updateMachineCycle(&machine1);
+  updateMachineCycle(&machine2);
+  
+  // Update LED status
+  updateLEDStatus(&machine1);
+  updateLEDStatus(&machine2);
+  
+  // Send timer updates to backend
+  if (millis() - lastBackendUpdate >= BACKEND_UPDATE_INTERVAL) {
+    lastBackendUpdate = millis();
+    sendTimerUpdate(&machine1);
+    sendTimerUpdate(&machine2);
+  }
+  
+  delay(50);
+}
+
+// ==================== WIFI CONNECTION ====================
+
+void connectToWiFi() {
+  Serial.print("📡 Connecting to WiFi: ");
+  Serial.println(WIFI_SSID);
+  
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+    delay(500);
+    Serial.print(".");
+    attempts++;
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n✅ WiFi Connected!");
+    Serial.print("📍 IP Address: ");
+    Serial.println(WiFi.localIP());
+    Serial.print("📶 Signal: ");
+    Serial.print(WiFi.RSSI());
+    Serial.println(" dBm");
+  } else {
+    Serial.println("\n❌ WiFi Connection Failed!");
+    Serial.println("⚠️  System will retry...");
+  }
+}
+
+// ==================== BACKEND POLLING ====================
+
+void checkBackendStatus(MachineState* machine) {
+  if (WiFi.status() != WL_CONNECTED) return;
+  
+  HTTPClient http;
+  String url = String(BACKEND_URL) + String(API_BASE) + "/machines/" + machine->machineId;
+  
+  http.begin(url);
+  http.setTimeout(5000);
+  int httpCode = http.GET();
+  
+  if (httpCode == 200) {
+    String payload = http.getString();
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, payload);
+    
+    if (!error) {
+      String newStatus = doc["status"] | "available";
+      String newWhatsapp = doc["whatsapp_number"] | "";
+      
+      // Detect payment done (status changed to "washing")
+      if (newStatus == "washing" && machine->status != "washing" && !machine->isWaitingStart) {
+        Serial.printf("\n🔔 Machine %s - PAYMENT DETECTED!\n", machine->machineId.c_str());
+        machine->status = newStatus;
+        machine->whatsappNumber = newWhatsapp;
+        machine->isWaitingStart = true;
+        machine->isRunning = false;
+        
+        Serial.printf("💡 LED BLINK mode activated (signal customer)\n");
+        Serial.printf("👉 Customer: Masuk baju & tekan START button\n\n");
+      }
+      
+      // Update status from backend (e.g., owner set to broken)
+      if (newStatus != "washing" && machine->status != newStatus) {
+        Serial.printf("📝 Machine %s status updated: %s → %s\n", 
+                     machine->machineId.c_str(), machine->status.c_str(), newStatus.c_str());
+        machine->status = newStatus;
+      }
+    }
+  } else if (httpCode > 0) {
+    Serial.printf("⚠️  Machine %s poll error: HTTP %d\n", machine->machineId.c_str(), httpCode);
+  }
+  
+  http.end();
+}
+
+// ==================== START BUTTON ====================
+
+void checkStartButton(MachineState* machine) {
+  bool currentButtonState = digitalRead(machine->buttonPin);
+  
+  // Button pressed (LOW because INPUT_PULLUP)
+  if (currentButtonState == LOW && machine->lastButtonState == HIGH) {
+    delay(50); // Debounce
+    
+    if (digitalRead(machine->buttonPin) == LOW && machine->isWaitingStart) {
+      Serial.printf("\n🎯 START BUTTON PRESSED - Machine %s\n", machine->machineId.c_str());
+      Serial.println("════════════════════════════════════════");
+      
+      // Start the cycle
+      machine->isWaitingStart = false;
+      machine->isRunning = true;
+      machine->startTime = millis();
+      machine->timeRemaining = machine->cycleSeconds;
+      machine->reminderSent = false;
+      
+      // Turn ON relay
+      digitalWrite(machine->relayPin, HIGH);
+      Serial.printf("⚡ Relay %d activated (GPIO %d HIGH)\n", 
+                   atoi(machine->machineId.c_str()), machine->relayPin);
+      
+      // LED solid ON
+      digitalWrite(machine->ledPin, HIGH);
+      Serial.printf("💡 LED %d solid ON (washing mode)\n", 
+                   atoi(machine->machineId.c_str()));
+      
+      Serial.printf("⏱️  Timer started: %lu seconds\n", machine->cycleSeconds);
+      Serial.println("════════════════════════════════════════\n");
+    }
+  }
+  
+  machine->lastButtonState = currentButtonState;
+}
+
+// ==================== MACHINE CYCLE ====================
+
+void updateMachineCycle(MachineState* machine) {
+  if (!machine->isRunning) return;
+  
+  unsigned long elapsedSeconds = (millis() - machine->startTime) / 1000;
+  machine->timeRemaining = machine->cycleSeconds - elapsedSeconds;
+  
+  // Send reminder
+  if (elapsedSeconds >= machine->reminderSeconds && !machine->reminderSent) {
+    machine->reminderSent = true;
+    int minutesRemaining = (machine->cycleSeconds - elapsedSeconds) / 60;
+    
+    Serial.printf("\n🔔 Machine %s - REMINDER TIME\n", machine->machineId.c_str());
+    Serial.printf("⏰ %d minute(s) remaining\n", minutesRemaining);
+    sendReminderToBackend(machine->machineId);
+    Serial.println();
+  }
+  
+  // Cycle complete
+  if (elapsedSeconds >= machine->cycleSeconds) {
+    Serial.printf("\n✅ Machine %s - CYCLE COMPLETE!\n", machine->machineId.c_str());
+    Serial.println("════════════════════════════════════════");
+    
+    // Turn OFF relay
+    digitalWrite(machine->relayPin, LOW);
+    Serial.printf("⚡ Relay %d deactivated (GPIO %d LOW)\n", 
+                 atoi(machine->machineId.c_str()), machine->relayPin);
+    
+    // Turn OFF LED
+    digitalWrite(machine->ledPin, LOW);
+    Serial.printf("💡 LED %d turned OFF (cycle complete)\n", 
+                 atoi(machine->machineId.c_str()));
+    
+    // Update backend
+    sendCompletionToBackend(machine);
+    
+    // Reset state
+    machine->isRunning = false;
+    machine->status = "available";
+    machine->whatsappNumber = "";
+    machine->timeRemaining = 0;
+    machine->reminderSent = false;
+    
+    Serial.println("════════════════════════════════════════\n");
+  }
+}
+
+// ==================== LED CONTROL ====================
+
+void updateLEDStatus(MachineState* machine) {
+  if (machine->isWaitingStart) {
+    // BLINK mode - waiting for START button
+    if (millis() - machine->lastBlinkTime >= LED_BLINK_INTERVAL) {
+      machine->lastBlinkTime = millis();
+      machine->ledBlinkState = !machine->ledBlinkState;
+      digitalWrite(machine->ledPin, machine->ledBlinkState ? HIGH : LOW);
+    }
+  } else if (machine->isRunning) {
+    // SOLID ON - machine running
+    digitalWrite(machine->ledPin, HIGH);
+  } else {
+    // OFF - machine available
+    digitalWrite(machine->ledPin, LOW);
+  }
+}
+
+// ==================== BACKEND UPDATES ====================
+
+void sendTimerUpdate(MachineState* machine) {
+  if (!machine->isRunning) return;
+  if (WiFi.status() != WL_CONNECTED) return;
+  
+  HTTPClient http;
+  String url = String(BACKEND_URL) + String(API_BASE) + "/machines/" + machine->machineId + "/status";
+  url += "?status=washing&time_remaining=" + String(machine->timeRemaining);
+  
+  http.begin(url);
+  http.setTimeout(3000);
+  int httpCode = http.sendRequest("PUT");
+  
+  if (httpCode == 200) {
+    // Success - silent (too verbose)
+  } else if (httpCode > 0) {
+    Serial.printf("⚠️  Timer update failed: HTTP %d\n", httpCode);
+  }
+  
+  http.end();
+}
+
+void sendReminderToBackend(String machineId) {
+  if (WiFi.status() != WL_CONNECTED) return;
+  
+  HTTPClient http;
+  String url = String(BACKEND_URL) + String(API_BASE) + "/machines/" + machineId + "/reminder";
+  
+  http.begin(url);
+  http.setTimeout(5000);
+  int httpCode = http.POST("");
+  
+  if (httpCode == 200) {
+    Serial.println("📤 Reminder notification sent to backend");
+  } else {
+    Serial.printf("⚠️  Reminder send failed: HTTP %d\n", httpCode);
+  }
+  
+  http.end();
+}
+
+void sendCompletionToBackend(MachineState* machine) {
+  if (WiFi.status() != WL_CONNECTED) return;
+  
+  HTTPClient http;
+  String url = String(BACKEND_URL) + String(API_BASE) + "/machines/" + machine->machineId + "/status";
+  url += "?status=available&time_remaining=0";
+  
+  http.begin(url);
+  http.setTimeout(5000);
+  int httpCode = http.sendRequest("PUT");
+  
+  if (httpCode == 200) {
+    Serial.println("📤 Completion notification sent to backend");
+  } else {
+    Serial.printf("⚠️  Completion send failed: HTTP %d\n", httpCode);
+  }
+  
+  http.end();
+}
+
+/*
+ * ╔════════════════════════════════════════════════════════════════╗
+ * ║                     WIRING DIAGRAM                             ║
+ * ╚════════════════════════════════════════════════════════════════╝
+ * 
+ * MACHINE 1:
+ *   GPIO 16 → Button START 1 (other pin to GND)
+ *   GPIO 18 → Relay 1 IN
+ *   GPIO 19 → LED 1 Anode (+) → 220Ω resistor → GND
+ * 
+ * MACHINE 2:
+ *   GPIO 17 → Button START 2 (other pin to GND)
+ *   GPIO 21 → Relay 2 IN
+ *   GPIO 22 → LED 2 Anode (+) → 220Ω resistor → GND
+ * 
+ * POWER:
+ *   ESP32 5V   → Relay VCC
+ *   ESP32 GND  → Relay GND, LED Cathodes, Button pins
+ *   ESP32 USB-C → Power supply
+ * 
+ * ╔════════════════════════════════════════════════════════════════╗
+ * ║                     LED BEHAVIOR                               ║
+ * ╚════════════════════════════════════════════════════════════════╝
+ * 
+ * OFF:       Machine available (idle)
+ * BLINKING:  Payment done, masuk baju & tekan START
+ * SOLID ON:  Machine running (washing)
+ * OFF:       Cycle complete (siap)
+ * 
+ * ╔════════════════════════════════════════════════════════════════╗
+ * ║                     SERIAL MONITOR                             ║
+ * ╚════════════════════════════════════════════════════════════════╝
+ * 
+ * Set baud rate to: 115200
+ * 
+ * Expected output:
+ * - WiFi connection status
+ * - Machine polling status
+ * - Payment detection
+ * - START button press
+ * - Timer countdown
+ * - Reminder notification
+ * - Cycle completion
+ */
