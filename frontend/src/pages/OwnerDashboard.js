@@ -62,6 +62,21 @@ export default function OwnerDashboard() {
     }
   };
 
+  const handleMachineStatusChange = async (machineId, newStatus) => {
+    try {
+      await axios.patch(
+        `${API}/machines/${machineId}/admin-status`,
+        { status: newStatus },
+        { withCredentials: true }
+      );
+      toast.success(`Machine ${machineId} status updated to ${newStatus}`);
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Error updating machine status:', error);
+      toast.error('Failed to update machine status');
+    }
+  };
+
   if (!user || !stats) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
