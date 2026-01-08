@@ -8,6 +8,7 @@ import OwnerDashboard from "@/pages/OwnerDashboard";
 import LoginPage from "@/pages/LoginPage";
 import AuthCallback from "@/pages/AuthCallback";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import InstructionsPage from "@/pages/InstructionsPage";
 
 function AppRouter() {
   const location = useLocation();
