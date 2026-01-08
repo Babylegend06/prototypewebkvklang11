@@ -178,6 +178,13 @@ async def get_machine(machine_id: str):
 @api_router.post("/machines/{machine_id}/start")
 async def start_machine(machine_id: str, data: MachineStartRequest):
     """Start washing cycle"""
+    cleaned_number = data.whatsapp_number.replace(" ", "").replace("-", "").replace("+", "")
+    if not cleaned_number.isdigit() or len(cleaned_number) < 10 or len(cleaned_number) > 15:
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid WhatsApp number. Must be 10-15 digits."
+        )
+    
     machine = await db.machines.find_one(
         {"machine_id": machine_id},
         {"_id": 0}
