@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { WashingMachine, Clock, DollarSign, Wrench, Sparkles, Zap } from 'lucide-react';
+import { WashingMachine, Clock, DollarSign, Wrench, Sparkles, Zap, Info } from 'lucide-react';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -74,12 +74,12 @@ export default function KioskHome() {
             <motion.a
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              href="/login"
+              href="/instructions"
               className="group px-6 py-2.5 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 rounded-xl transition-all duration-300 flex items-center gap-2"
-              data-testid="owner-login-link"
+              data-testid="instructions-link"
             >
-              <div className="w-2 h-2 rounded-full bg-cyan-400 group-hover:animate-pulse"></div>
-              <span className="text-slate-300 group-hover:text-cyan-400 transition-colors font-medium">Owner Login</span>
+              <Info className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
+              <span className="text-slate-300 group-hover:text-cyan-400 transition-colors font-medium">Arahan</span>
             </motion.a>
           </div>
 
@@ -96,7 +96,7 @@ export default function KioskHome() {
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto mb-12">
             <AnimatePresence>
               {machines.map((machine, index) => (
                 <MachineCard
@@ -109,6 +109,22 @@ export default function KioskHome() {
               ))}
             </AnimatePresence>
           </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="flex justify-center"
+          >
+            <a
+              href="/login"
+              className="group px-8 py-3 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 rounded-xl transition-all duration-300 flex items-center gap-3"
+              data-testid="owner-login-link"
+            >
+              <div className="w-2 h-2 rounded-full bg-cyan-400 group-hover:animate-pulse"></div>
+              <span className="text-slate-300 group-hover:text-cyan-400 transition-colors font-medium">Owner Login</span>
+            </a>
+          </motion.div>
         </div>
       </div>
     </div>
