@@ -189,6 +189,77 @@ class SmartDobiAPITester:
         
         # Test get current user
         self.run_test("Get Current User", "GET", "auth/me", 200)
+        
+        # Test admin machine status control (NEW FEATURE)
+        self.test_admin_machine_control()
+
+    def test_admin_machine_control(self):
+        """Test admin machine status control (NEW FEATURE)"""
+        print("\n🔍 Testing Admin Machine Control...")
+        
+        if not self.session_token:
+            print("   ⚠️  No session token - skipping admin tests")
+            return
+        
+        # Test setting machine to maintenance
+        maintenance_data = {"status": "broken"}
+        success, response = self.run_test(
+            "Set Machine to Maintenance", 
+            "PATCH", 
+            "machines/1/admin-status", 
+            200, 
+            maintenance_data
+        )
+        
+        # Test setting machine back to available
+        available_data = {"status": "available"}
+        self.run_test(
+            "Set Machine to Available", 
+            "PATCH", 
+            "machines/1/admin-status", 
+            200, 
+            available_data
+        )
+        
+        # Test invalid status
+        invalid_data = {"status": "invalid_status"}
+        self.run_test(
+            "Invalid Admin Status", 
+            "PATCH", 
+            "machines/1/admin-status", 
+            400, 
+            invalid_data
+        )
+
+    def test_esp32_simulation(self):
+        """Test ESP32 simulation endpoints"""
+        print("\n🔍 Testing ESP32 Simulation...")
+        
+        # Test updating machine status (ESP32 calls)
+        esp32_url = f"{self.base_url}/api/machines/1/status?status=washing&time_remaining=118"
+        
+        try:
+            response = requests.put(esp32_url, timeout=10)
+            success = response.status_code == 200
+            self.log_test("ESP32 Status Update", success, 
+                         f"Status: {response.status_code}" if success else f"Failed: {response.text}")
+            
+            if success:
+                # Verify the update worked
+                success2, machine_data = self.run_test("Verify ESP32 Update", "GET", "machines/1", 200)
+                if success2 and machine_data:
+                    time_remaining = machine_data.get('time_remaining', 0)
+                    print(f"   Machine 1 time remaining: {time_remaining}s")
+                    if time_remaining == 118:
+                        self.log_test("ESP32 Timer Update Verified", True)
+                    else:
+                        self.log_test("ESP32 Timer Update Verified", False, f"Expected 118, got {time_remaining}")
+        
+        except Exception as e:
+            self.log_test("ESP32 Status Update", False, f"Request error: {str(e)}")
+        
+        # Test reminder endpoint
+        self.run_test("ESP32 Send Reminder", "POST", "machines/1/reminder", 200)
 
     def test_unauthorized_access(self):
         """Test accessing protected endpoints without auth"""
