@@ -1,8 +1,13 @@
 // Smart Dobi - Main JavaScript
 // ===========================================
 
-// Check if first visit for onboarding
+// Check if first visit for onboarding (only on index page)
 function checkFirstVisit() {
+    // Only show on index page
+    if (!window.location.pathname.endsWith('index.html') && !window.location.pathname.endsWith('/dobi/')) {
+        return;
+    }
+    
     const hasVisited = localStorage.getItem('smartDobi_visited');
     if (!hasVisited) {
         setTimeout(() => showOnboarding(), 500);
