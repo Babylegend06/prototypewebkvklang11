@@ -26,6 +26,8 @@ WASAPBOT_API_URL = os.environ.get('WASAPBOT_API_URL', 'https://dash.wasapbot.my/
 WASAPBOT_INSTANCE_ID = os.environ.get('WASAPBOT_INSTANCE_ID', '609ACF283XXXX')
 WASAPBOT_ACCESS_TOKEN = os.environ.get('WASAPBOT_ACCESS_TOKEN', '695df3770b34a')
 
+ESP32_HEARTBEAT_TIMEOUT = 15
+
 class Machine(BaseModel):
     model_config = ConfigDict(extra="ignore")
     machine_id: str
@@ -34,20 +36,25 @@ class Machine(BaseModel):
     time_remaining: int = 0
     machine_type: str = "washer"
     price: float = 5.00
+    last_heartbeat: Optional[str] = None
+    payment_verified: bool = False
 
 class MachineStartRequest(BaseModel):
-    whatsapp_number: str
+    whatsapp_number: Optional[str] = None
     amount: float
 
 class MachineStatusUpdate(BaseModel):
     status: str
+
+class PaymentVerification(BaseModel):
+    verified: bool
 
 class Transaction(BaseModel):
     model_config = ConfigDict(extra="ignore")
     transaction_id: str
     machine_id: str
     amount: float
-    whatsapp_number: str
+    whatsapp_number: Optional[str]
     timestamp: datetime
     status: str = "completed"
 
@@ -74,7 +81,11 @@ class SessionResponse(BaseModel):
     session_token: str
 
 async def send_whatsapp(number: str, message: str):
-    """Send WhatsApp message using WasapBot.my API"""
+    """Send WhatsApp message - skip if number is None/empty"""
+    if not number or number.strip() == "":
+        logging.info("WhatsApp notification skipped (no number provided)")
+        return True
+    
     try:
         async with httpx.AsyncClient() as client:
             params = {
@@ -90,6 +101,26 @@ async def send_whatsapp(number: str, message: str):
     except Exception as e:
         logging.error(f"WhatsApp send error: {e}")
         return False
+
+async def check_esp32_heartbeat():
+    """Check ESP32 heartbeat and set to broken if timeout"""
+    machines = await db.machines.find({}, {"_id": 0}).to_list(100)
+    current_time = datetime.now(timezone.utc)
+    
+    for machine in machines:
+        if machine.get("last_heartbeat"):
+            last_beat = datetime.fromisoformat(machine["last_heartbeat"])
+            if last_beat.tzinfo is None:
+                last_beat = last_beat.replace(tzinfo=timezone.utc)
+            
+            time_diff = (current_time - last_beat).total_seconds()
+            
+            if time_diff > ESP32_HEARTBEAT_TIMEOUT and machine["status"] != "broken":
+                await db.machines.update_one(
+                    {"machine_id": machine["machine_id"]},
+                    {"$set": {"status": "broken"}}
+                )
+                logging.warning(f"Machine {machine['machine_id']} set to broken (ESP32 not responding)")
 
 async def get_current_user(request: Request) -> Optional[User]:
     """Helper function to get current user from session token"""
@@ -139,26 +170,32 @@ async def root():
 
 @api_router.get("/machines", response_model=List[Machine])
 async def get_machines():
-    """Get all machines status"""
+    """Get all machines status with ESP32 heartbeat check"""
+    await check_esp32_heartbeat()
+    
     machines = await db.machines.find({}, {"_id": 0}).to_list(100)
     
     if not machines:
         default_machines = [
             {
                 "machine_id": "1",
-                "status": "available",
+                "status": "broken",
                 "whatsapp_number": None,
                 "time_remaining": 0,
                 "machine_type": "washer",
-                "price": 5.00
+                "price": 5.00,
+                "last_heartbeat": None,
+                "payment_verified": False
             },
             {
                 "machine_id": "2",
-                "status": "available",
+                "status": "broken",
                 "whatsapp_number": None,
                 "time_remaining": 0,
                 "machine_type": "washer",
-                "price": 5.00
+                "price": 5.00,
+                "last_heartbeat": None,
+                "payment_verified": False
             }
         ]
         await db.machines.insert_many(default_machines)
@@ -181,13 +218,14 @@ async def get_machine(machine_id: str):
 
 @api_router.post("/machines/{machine_id}/start")
 async def start_machine(machine_id: str, data: MachineStartRequest):
-    """Start washing cycle - ESP32 will set the timer"""
-    cleaned_number = data.whatsapp_number.replace(" ", "").replace("-", "").replace("+", "")
-    if not cleaned_number.isdigit() or len(cleaned_number) < 10 or len(cleaned_number) > 15:
-        raise HTTPException(
-            status_code=400, 
-            detail="Invalid WhatsApp number. Must be 10-15 digits."
-        )
+    """Reserve machine - payment not yet verified"""
+    if data.whatsapp_number:
+        cleaned_number = data.whatsapp_number.replace(" ", "").replace("-", "").replace("+", "")
+        if not cleaned_number.isdigit() or len(cleaned_number) < 10 or len(cleaned_number) > 15:
+            raise HTTPException(
+                status_code=400, 
+                detail="Invalid WhatsApp number. Must be 10-15 digits."
+            )
     
     machine = await db.machines.find_one(
         {"machine_id": machine_id},
@@ -203,8 +241,38 @@ async def start_machine(machine_id: str, data: MachineStartRequest):
     await db.machines.update_one(
         {"machine_id": machine_id},
         {"$set": {
-            "status": "washing",
+            "status": "reserved",
             "whatsapp_number": data.whatsapp_number,
+            "time_remaining": 0,
+            "payment_verified": False
+        }}
+    )
+    
+    return {"message": "Machine reserved", "machine_id": machine_id}
+
+@api_router.post("/machines/{machine_id}/verify-payment")
+async def verify_payment(machine_id: str, data: PaymentVerification):
+    """Verify payment and start washing cycle"""
+    machine = await db.machines.find_one(
+        {"machine_id": machine_id},
+        {"_id": 0}
+    )
+    
+    if not machine:
+        raise HTTPException(status_code=404, detail="Machine not found")
+    
+    if not data.verified:
+        await db.machines.update_one(
+            {"machine_id": machine_id},
+            {"$set": {"status": "available", "whatsapp_number": None, "payment_verified": False}}
+        )
+        return {"message": "Payment cancelled"}
+    
+    await db.machines.update_one(
+        {"machine_id": machine_id},
+        {"$set": {
+            "status": "washing",
+            "payment_verified": True,
             "time_remaining": 0
         }}
     )
@@ -213,8 +281,8 @@ async def start_machine(machine_id: str, data: MachineStartRequest):
     transaction = {
         "transaction_id": transaction_id,
         "machine_id": machine_id,
-        "amount": data.amount,
-        "whatsapp_number": data.whatsapp_number,
+        "amount": machine.get("price", 5.00),
+        "whatsapp_number": machine.get("whatsapp_number"),
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "status": "completed"
     }
@@ -226,22 +294,23 @@ async def start_machine(machine_id: str, data: MachineStartRequest):
         {
             "$inc": {
                 "total_cycles": 1,
-                "total_revenue": data.amount
+                "total_revenue": machine.get("price", 5.00)
             }
         },
         upsert=True
     )
     
-    await send_whatsapp(
-        data.whatsapp_number,
-        f"Smart Dobi: Mesin {machine_id} start! Sila tunggu 30 minit. Anda akan menerima notifikasi apabila hampir siap. Terima kasih! 🧺"
-    )
+    if machine.get("whatsapp_number"):
+        await send_whatsapp(
+            machine["whatsapp_number"],
+            f"Smart Dobi: Pembayaran berjaya! Sila ke Mesin {machine_id}, masukkan pakaian anda dan tekan button START. LED akan berkelip sebagai signal. Terima kasih! 🧺"
+        )
     
-    return {"message": "Machine started", "transaction_id": transaction_id}
+    return {"message": "Payment verified", "transaction_id": transaction_id}
 
 @api_router.put("/machines/{machine_id}/status")
 async def update_machine_status(machine_id: str, status: str, time_remaining: int = 0):
-    """Update machine status and timer (called by ESP32)"""
+    """Update machine status (called by ESP32) with heartbeat"""
     machine = await db.machines.find_one(
         {"machine_id": machine_id},
         {"_id": 0}
@@ -250,7 +319,11 @@ async def update_machine_status(machine_id: str, status: str, time_remaining: in
     if not machine:
         raise HTTPException(status_code=404, detail="Machine not found")
     
-    update_data = {"status": status, "time_remaining": time_remaining}
+    update_data = {
+        "status": status, 
+        "time_remaining": time_remaining,
+        "last_heartbeat": datetime.now(timezone.utc).isoformat()
+    }
     
     if status == "available":
         if machine.get("whatsapp_number"):
@@ -260,6 +333,7 @@ async def update_machine_status(machine_id: str, status: str, time_remaining: in
             )
         update_data["whatsapp_number"] = None
         update_data["time_remaining"] = 0
+        update_data["payment_verified"] = False
     
     await db.machines.update_one(
         {"machine_id": machine_id},
@@ -277,7 +351,7 @@ async def send_reminder(machine_id: str):
     )
     
     if not machine or not machine.get("whatsapp_number"):
-        raise HTTPException(status_code=404, detail="Machine or WhatsApp not found")
+        return {"message": "No WhatsApp number"}
     
     await send_whatsapp(
         machine["whatsapp_number"],
@@ -308,9 +382,11 @@ async def admin_update_status(machine_id: str, data: MachineStatusUpdate, reques
     if data.status == "available":
         update_data["time_remaining"] = 0
         update_data["whatsapp_number"] = None
+        update_data["payment_verified"] = False
     elif data.status == "broken":
         update_data["time_remaining"] = 0
         update_data["whatsapp_number"] = None
+        update_data["payment_verified"] = False
     
     await db.machines.update_one(
         {"machine_id": machine_id},
