@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import KioskHome from "@/pages/KioskHome";
 import PaymentPage from "@/pages/PaymentPage";
+import WaitingPage from "@/pages/WaitingPage";
 import OwnerDashboard from "@/pages/OwnerDashboard";
 import LoginPage from "@/pages/LoginPage";
 import AuthCallback from "@/pages/AuthCallback";
