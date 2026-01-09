@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { WashingMachine, Clock, DollarSign, Wrench, Sparkles, Zap, Info } from 'lucide-react';
+import { WashingMachine, Clock, DollarSign, Wrench, Sparkles, Zap, Info, X, ArrowRight, CheckCircle, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -9,6 +9,7 @@ const API = `${BACKEND_URL}/api`;
 
 export default function KioskHome() {
   const [machines, setMachines] = useState([]);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const navigate = useNavigate();
 
   const fetchMachines = async () => {
@@ -21,6 +22,13 @@ export default function KioskHome() {
   };
 
   useEffect(() => {
+    // Check if first time visitor
+    const hasVisited = localStorage.getItem('smart_dobi_visited');
+    if (!hasVisited) {
+      setShowOnboarding(true);
+      localStorage.setItem('smart_dobi_visited', 'true');
+    }
+
     fetchMachines();
     const interval = setInterval(fetchMachines, 2000);
     return () => clearInterval(interval);
@@ -30,9 +38,10 @@ export default function KioskHome() {
     const badges = {
       available: { text: 'Tersedia', class: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40', icon: <Sparkles className="w-4 h-4" /> },
       washing: { text: 'Sedang Basuh', class: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40 animate-pulse', icon: <Zap className="w-4 h-4" /> },
+      reserved: { text: 'Direserve', class: 'bg-purple-500/20 text-purple-400 border-purple-500/40', icon: <Clock className="w-4 h-4" /> },
       broken: { text: 'Under Maintenance', class: 'bg-amber-500/20 text-amber-400 border-amber-500/40', icon: <Wrench className="w-4 h-4" /> }
     };
-    return badges[status] || badges.available;
+    return badges[status] || badges.broken;
   };
 
   const handleMachineClick = (machine) => {
@@ -41,8 +50,12 @@ export default function KioskHome() {
     }
   };
 
+  const availableCount = machines.filter(m => m.status === 'available').length;
+  const workingCount = machines.filter(m => m.status === 'washing').length;
+
   return (
     <div className="min-h-screen bg-slate-950 relative overflow-hidden">
+      {/* Background */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-cyan-950/30 via-slate-950 to-indigo-950/30"></div>
         <div className="absolute inset-0" style={{
@@ -51,9 +64,98 @@ export default function KioskHome() {
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl"></div>
       </div>
+
+      {/* Onboarding Modal */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowOnboarding(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-2xl w-full relative"
+            >
+              <button
+                onClick={() => setShowOnboarding(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <div className="text-center mb-6">
+                <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                  <WashingMachine className="w-10 h-10 text-white" />
+                </div>
+                <h2 className="fredoka text-4xl bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent mb-2">
+                  Selamat Datang!
+                </h2>
+                <p className="text-slate-400 text-lg">Cara guna Smart Dobi sangat mudah</p>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <div className="flex items-start gap-4 bg-slate-800/50 rounded-xl p-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center flex-shrink-0 font-bold text-white">
+                    1
+                  </div>
+                  <div>
+                    <h3 className="text-slate-100 font-semibold mb-1">Pilih Mesin Tersedia</h3>
+                    <p className="text-slate-400 text-sm">Mesin dengan label hijau "Tersedia" boleh dipilih</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 bg-slate-800/50 rounded-xl p-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 font-bold text-white">
+                    2
+                  </div>
+                  <div>
+                    <h3 className="text-slate-100 font-semibold mb-1">Scan QR & Bayar</h3>
+                    <p className="text-slate-400 text-sm">Scan QR code dengan app banking (Demo: tekan sahkan)</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 bg-slate-800/50 rounded-xl p-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center flex-shrink-0 font-bold text-white">
+                    3
+                  </div>
+                  <div>
+                    <h3 className="text-slate-100 font-semibold mb-1">LED Berkelip = Masuk Baju</h3>
+                    <p className="text-slate-400 text-sm">Bila LED berkelip, pergi ke mesin dan masukkan pakaian</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 bg-slate-800/50 rounded-xl p-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center flex-shrink-0 font-bold text-white">
+                    4
+                  </div>
+                  <div>
+                    <h3 className="text-slate-100 font-semibold mb-1">Tekan START di Mesin</h3>
+                    <p className="text-slate-400 text-sm">Tekan button START. LED jadi solid dan mesin mula basuh</p>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowOnboarding(false)}
+                className="w-full bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 flex items-center justify-center gap-2"
+              >
+                <span>Saya Faham, Mulakan!</span>
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       <div className="relative z-10">
         <div className="container mx-auto px-4 py-6">
+          {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -67,35 +169,122 @@ export default function KioskHome() {
                 <h1 className="fredoka text-4xl bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
                   Smart Dobi
                 </h1>
-                <p className="text-slate-500 text-sm">Self-Service Laundry</p>
+                <p className="text-slate-500 text-sm">Self-Service Laundry System</p>
               </div>
             </motion.div>
             
-            <motion.a
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              href="/instructions"
-              className="group px-6 py-2.5 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 rounded-xl transition-all duration-300 flex items-center gap-2"
-              data-testid="instructions-link"
-            >
-              <Info className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
-              <span className="text-slate-300 group-hover:text-cyan-400 transition-colors font-medium">Arahan</span>
-            </motion.a>
+            <div className="flex items-center gap-3">
+              <motion.button
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                onClick={() => setShowOnboarding(true)}
+                className="group px-4 py-2.5 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-indigo-500/50 rounded-xl transition-all duration-300 flex items-center gap-2"
+                data-testid="help-btn"
+              >
+                <Info className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" />
+                <span className="text-slate-300 group-hover:text-indigo-400 transition-colors font-medium hidden sm:inline">Panduan</span>
+              </motion.button>
+
+              <motion.a
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+                href="/instructions"
+                className="group px-4 py-2.5 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 rounded-xl transition-all duration-300 flex items-center gap-2"
+                data-testid="instructions-link"
+              >
+                <Info className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
+                <span className="text-slate-300 group-hover:text-cyan-400 transition-colors font-medium hidden sm:inline">Arahan</span>
+              </motion.a>
+            </div>
           </div>
 
+          {/* Status Summary */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-center mb-8"
+            className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-4"
           >
-            <h2 className="text-slate-400 text-lg mb-2">Pilih mesin yang tersedia untuk memulakan</h2>
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900/50 border border-slate-800 rounded-full">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-              <span className="text-slate-400 text-sm">Live Status</span>
+            <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-slate-400 text-xs">Tersedia</p>
+                  <p className="fredoka text-2xl text-emerald-400">{availableCount}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-cyan-400" />
+                </div>
+                <div>
+                  <p className="text-slate-400 text-xs">Beroperasi</p>
+                  <p className="fredoka text-2xl text-cyan-400">{workingCount}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-slate-400 text-xs">Harga</p>
+                  <p className="fredoka text-2xl text-purple-400">RM 5</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div>
+                  <p className="text-slate-400 text-xs">Masa</p>
+                  <p className="fredoka text-2xl text-indigo-400">30m</p>
+                </div>
+              </div>
             </div>
           </motion.div>
 
+          {/* Info Banner */}
+          {availableCount === 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8 bg-amber-900/20 border border-amber-500/30 rounded-xl p-4"
+            >
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-6 h-6 text-amber-400 flex-shrink-0" />
+                <p className="text-amber-200">
+                  Semua mesin sedang digunakan atau dalam maintenance. Sila tunggu sebentar.
+                </p>
+              </div>
+            </motion.div>
+          )}
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-center mb-6"
+          >
+            <h2 className="text-slate-400 text-lg mb-2">Pilih mesin yang tersedia</h2>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900/50 border border-slate-800 rounded-full">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+              <span className="text-slate-400 text-sm">Status Real-Time</span>
+            </div>
+          </motion.div>
+
+          {/* Machine Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto mb-12">
             <AnimatePresence>
               {machines.map((machine, index) => (
@@ -110,6 +299,7 @@ export default function KioskHome() {
             </AnimatePresence>
           </div>
 
+          {/* Owner Login */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -136,6 +326,7 @@ function MachineCard({ machine, index, onSelect, getStatusBadge }) {
   const isAvailable = machine.status === 'available';
   const isWashing = machine.status === 'washing';
   const isBroken = machine.status === 'broken';
+  const isReserved = machine.status === 'reserved';
 
   return (
     <motion.div
@@ -152,7 +343,7 @@ function MachineCard({ machine, index, onSelect, getStatusBadge }) {
         ${
           isAvailable 
             ? 'border-emerald-500/30 hover:border-emerald-500/60 hover:shadow-2xl hover:shadow-emerald-500/20 cursor-pointer hover:scale-105 hover:-translate-y-2' 
-            : isBroken
+            : isBroken || isReserved
             ? 'border-amber-500/20 opacity-70'
             : 'border-cyan-500/30 shadow-lg shadow-cyan-500/10'
         }
@@ -182,7 +373,7 @@ function MachineCard({ machine, index, onSelect, getStatusBadge }) {
                 'bg-gradient-to-br from-amber-500 to-orange-600'
               }`}
             >
-              {isBroken ? (
+              {isBroken || isReserved ? (
                 <Wrench className="w-6 h-6 text-white" />
               ) : (
                 <WashingMachine className="w-6 h-6 text-white" />
@@ -246,6 +437,12 @@ function MachineCard({ machine, index, onSelect, getStatusBadge }) {
             Dalam Penyelenggaraan
           </div>
         )}
+
+        {isReserved && (
+          <div className="w-full bg-purple-500/10 text-purple-400 font-semibold py-3 rounded-xl text-center border border-purple-500/30 text-sm">
+            Menunggu Pembayaran
+          </div>
+        )}
       </div>
     </motion.div>
   );
@@ -257,16 +454,6 @@ function CountdownTimer({ initialSeconds }) {
   useEffect(() => {
     setSeconds(initialSeconds);
   }, [initialSeconds]);
-
-  useEffect(() => {
-    if (seconds <= 0) return;
-    
-    const interval = setInterval(() => {
-      setSeconds(prev => Math.max(0, prev - 1));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [seconds]);
 
   const formatTime = (secs) => {
     const mins = Math.floor(secs / 60);
