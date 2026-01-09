@@ -1,22 +1,24 @@
-/* Waiting Page Styles */
+/* Waiting Page Styles - Matching Reference Design */
 
 .waiting-wrapper {
     display: flex;
     justify-content: center;
-    min-height: calc(100vh - 3rem);
+    min-height: 100vh;
     align-items: center;
-    padding: 2rem 0;
+    padding: 2rem;
 }
 
 .waiting-card {
-    background: rgba(15, 23, 42, 0.8);
+    background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(20px);
-    border: 1px solid #334155;
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 24px;
-    padding: 2rem;
+    padding: 2.5rem;
     max-width: 500px;
     width: 100%;
     animation: fadeInUp 0.6s ease;
+    text-align: center;
 }
 
 /* Success Header */
@@ -28,167 +30,52 @@
 .success-icon {
     width: 80px;
     height: 80px;
-    margin: 0 auto 1rem;
+    margin: 0 auto 1.5rem;
     border-radius: 50%;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: rgba(76, 217, 100, 0.3);
+    border: 3px solid #4cd964;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
     animation: scaleIn 0.5s ease 0.2s both;
+}
+
+.success-icon svg {
+    color: #4cd964;
 }
 
 .success-header h1 {
     font-size: 1.75rem;
+    color: #ffffff;
     margin-bottom: 0.5rem;
 }
 
-/* Animation Container */
+.success-header p {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Animation Container - Hidden for cleaner look */
 .animation-container {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 2rem;
-}
-
-.washing-machine {
-    position: relative;
-    width: 140px;
-    height: 160px;
-}
-
-.machine-body {
-    width: 140px;
-    height: 140px;
-    background: linear-gradient(180deg, #374151 0%, #1f2937 100%);
-    border-radius: 16px;
-    padding: 15px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
-.machine-door {
-    width: 100%;
-    height: 100%;
-    background: #111827;
-    border-radius: 50%;
-    padding: 8px;
-    position: relative;
-}
-
-.door-ring {
-    position: absolute;
-    inset: 4px;
-    border: 3px solid #4b5563;
-    border-radius: 50%;
-}
-
-.door-inner {
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #1e3a5f 0%, #0c4a6e 100%);
-    border-radius: 50%;
-    position: relative;
-    overflow: hidden;
-}
-
-.clothes {
-    position: absolute;
-    border-radius: 4px;
-    animation: tumble 2s ease-in-out infinite;
-}
-
-.clothes-1 {
-    width: 25px;
-    height: 15px;
-    background: #f43f5e;
-    top: 30%;
-    left: 20%;
-    animation-delay: 0s;
-}
-
-.clothes-2 {
-    width: 20px;
-    height: 20px;
-    background: #3b82f6;
-    top: 50%;
-    left: 50%;
-    animation-delay: 0.3s;
-}
-
-.clothes-3 {
-    width: 18px;
-    height: 12px;
-    background: #fbbf24;
-    top: 40%;
-    left: 60%;
-    animation-delay: 0.6s;
-}
-
-@keyframes tumble {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    25% { transform: translateY(-10px) rotate(90deg); }
-    50% { transform: translateY(5px) rotate(180deg); }
-    75% { transform: translateY(-5px) rotate(270deg); }
-}
-
-.led-indicator {
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #10b981;
-}
-
-.led-indicator.blink {
-    animation: ledBlink 1s ease-in-out infinite;
-}
-
-.led-indicator.solid {
-    background: #06b6d4;
-    box-shadow: 0 0 12px #06b6d4;
-}
-
-@keyframes ledBlink {
-    0%, 100% { opacity: 1; box-shadow: 0 0 12px #f59e0b; background: #f59e0b; }
-    50% { opacity: 0.3; box-shadow: none; background: #92400e; }
+    display: none;
 }
 
 /* Instruction Box */
 .instruction-box {
-    background: rgba(30, 41, 59, 0.5);
-    border: 1px solid #334155;
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     padding: 1.5rem;
     margin-bottom: 1.5rem;
+    text-align: left;
 }
 
 .instruction-icon {
-    width: 56px;
-    height: 56px;
-    margin: 0 auto 1rem;
-    border-radius: 50%;
-    background: rgba(245, 158, 11, 0.2);
-    color: #f59e0b;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.instruction-icon.pulse {
-    animation: iconPulse 2s ease-in-out infinite;
-}
-
-@keyframes iconPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+    display: none;
 }
 
 .instruction-box h2 {
     text-align: center;
     font-size: 1.25rem;
-    color: #f1f5f9;
+    color: #ffffff;
     margin-bottom: 1rem;
 }
 
@@ -203,7 +90,7 @@
     align-items: center;
     gap: 1rem;
     padding: 0.75rem;
-    background: rgba(15, 23, 42, 0.5);
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 12px;
 }
 
@@ -211,7 +98,7 @@
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #06b6d4 0%, #6366f1 100%);
+    background: rgba(255, 255, 255, 0.2);
     color: white;
     display: flex;
     align-items: center;
@@ -222,12 +109,20 @@
 }
 
 .step-item p {
-    font-size: 0.875rem;
-    color: #cbd5e1;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .step-item strong {
-    color: #f1f5f9;
+    color: #ffffff;
+}
+
+.text-amber {
+    color: #ffcc00 !important;
+}
+
+.text-emerald {
+    color: #4cd964 !important;
 }
 
 /* Status Box */
@@ -236,15 +131,9 @@
     align-items: center;
     gap: 1rem;
     padding: 1rem 1.5rem;
-    background: rgba(6, 182, 212, 0.1);
-    border: 1px solid rgba(6, 182, 212, 0.3);
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     margin-bottom: 1.5rem;
-}
-
-.status-box.washing {
-    background: rgba(16, 185, 129, 0.1);
-    border-color: rgba(16, 185, 129, 0.3);
 }
 
 .status-icon {
@@ -255,27 +144,19 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-}
-
-.status-icon.waiting {
-    background: rgba(245, 158, 11, 0.2);
-    color: #f59e0b;
-}
-
-.status-icon.active {
-    background: rgba(6, 182, 212, 0.2);
-    color: #06b6d4;
+    background: rgba(255, 204, 0, 0.2);
+    color: #ffcc00;
 }
 
 .status-label {
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: rgba(255, 255, 255, 0.6);
     margin-bottom: 0.25rem;
 }
 
 .status-value {
     font-size: 1rem;
-    color: #f1f5f9;
+    color: #ffffff;
 }
 
 /* Button */
@@ -284,23 +165,56 @@
     justify-content: center;
 }
 
+#backBtn {
+    background: rgba(255, 255, 255, 0.9);
+    color: #667eea;
+    border: none;
+    border-radius: 25px;
+    padding: 1rem 2rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+#backBtn:hover {
+    background: #ffffff;
+    transform: scale(1.02);
+}
+
 /* Responsive */
 @media (max-width: 480px) {
     .waiting-card {
-        padding: 1.5rem;
+        padding: 2rem 1.5rem;
     }
     
     .success-header h1 {
         font-size: 1.5rem;
     }
-    
-    .washing-machine {
-        width: 120px;
-        height: 140px;
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
     }
-    
-    .machine-body {
-        width: 120px;
-        height: 120px;
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }

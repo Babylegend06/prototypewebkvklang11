@@ -45,7 +45,7 @@ function getTimerClass(seconds) {
     return '';
 }
 
-// Create machine card HTML
+// Create machine card HTML - Simple Design
 function createMachineCard(machineId, data) {
     const status = data.status || 'available';
     const isOnline = data.is_online !== false;
@@ -55,87 +55,29 @@ function createMachineCard(machineId, data) {
     const isAvailable = displayStatus === 'available';
     const isWashing = displayStatus === 'washing';
     
-    // Icon SVG based on status
-    const icon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-        <circle cx="12" cy="12" r="10"></circle>
-        <path d="M12 6v6l4 2"></path>
-    </svg>`;
+    // Status text
+    let statusText = getStatusText(displayStatus).toUpperCase();
+    if (isWashing && timeRemaining > 0) {
+        statusText = formatTime(timeRemaining);
+    }
     
     // Action button
     let actionButton = '';
     if (isAvailable) {
-        actionButton = `<button class="machine-action available" onclick="selectMachine('${machineId}')">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            Pilih Mesin Ini
-        </button>`;
-    } else if (isWashing) {
-        actionButton = `<button class="machine-action disabled" disabled>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            Sedang Digunakan
-        </button>`;
+        actionButton = `<button class="machine-action available" onclick="selectMachine('${machineId}')">PILIH</button>`;
     } else {
-        actionButton = `<button class="machine-action disabled" disabled>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                <line x1="12" y1="9" x2="12" y2="13"></line>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-            </svg>
-            Tidak Tersedia
-        </button>`;
-    }
-    
-    // Timer display for washing machines
-    let timerDisplay = '';
-    if (isWashing && timeRemaining > 0) {
-        const timerClass = getTimerClass(timeRemaining);
-        timerDisplay = `<div class="detail-row">
-            <span class="detail-label">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-                Masa Berbaki
-            </span>
-            <span class="timer-value ${timerClass}" id="timer-${machineId}">${formatTime(timeRemaining)}</span>
-        </div>`;
+        actionButton = `<button class="machine-action disabled" disabled>${isWashing ? 'RUNNING' : 'UNAVAILABLE'}</button>`;
     }
     
     return `<div class="machine-card ${displayStatus}" style="animation-delay: ${(parseInt(machineId) - 1) * 0.1}s">
-        <div class="machine-glow"></div>
         <div class="machine-header">
             <div class="machine-info">
-                <div class="machine-icon ${displayStatus}">
-                    ${icon}
-                </div>
-                <div>
-                    <h3 class="machine-title fredoka">Mesin ${machineId}</h3>
-                    <p class="machine-type">mesin basuh</p>
-                </div>
+                <h3 class="machine-title">MESIN ${machineId}</h3>
             </div>
         </div>
         
         <div class="status-badge ${displayStatus}">
-            <span class="pulse-dot"></span>
-            ${getStatusText(displayStatus)}
-        </div>
-        
-        <div class="machine-details">
-            <div class="detail-row">
-                <span class="detail-label">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="1" x2="12" y2="23"></line>
-                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                    </svg>
-                    Harga
-                </span>
-                <span class="detail-value">RM 5.00</span>
-            </div>
-            ${timerDisplay}
+            ${statusText}
         </div>
         
         ${actionButton}
