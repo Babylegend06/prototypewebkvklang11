@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Dobi - Self-Service Laundry</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+    <!-- Background -->
+    <div class="bg-container">
+        <div class="bg-gradient"></div>
+        <div class="bg-radial"></div>
+        <div class="bg-blur blur-1"></div>
+        <div class="bg-blur blur-2"></div>
+    </div>
+
+    <!-- Onboarding Modal -->
+    <div id="onboardingModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeOnboarding()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            
+            <div class="modal-header">
+                <div class="modal-icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 6v6l4 2"></path>
+                    </svg>
+                </div>
+                <h2 class="fredoka gradient-text">Selamat Datang!</h2>
+                <p class="text-muted">Cara guna Smart Dobi sangat mudah</p>
+            </div>
+
+            <div class="onboarding-steps">
+                <div class="onboarding-step">
+                    <div class="step-number step-emerald">1</div>
+                    <div class="step-content">
+                        <h3>Pilih Mesin Tersedia</h3>
+                        <p>Mesin dengan label hijau "Tersedia" boleh dipilih</p>
+                    </div>
+                </div>
+
+                <div class="onboarding-step">
+                    <div class="step-number step-blue">2</div>
+                    <div class="step-content">
+                        <h3>Scan QR & Bayar</h3>
+                        <p>Scan QR code dengan app banking (Demo: tekan sahkan)</p>
+                    </div>
+                </div>
+
+                <div class="onboarding-step">
+                    <div class="step-number step-amber">3</div>
+                    <div class="step-content">
+                        <h3>LED Berkelip = Masuk Baju</h3>
+                        <p>Bila LED berkelip, pergi ke mesin dan masukkan pakaian</p>
+                    </div>
+                </div>
+
+                <div class="onboarding-step">
+                    <div class="step-number step-purple">4</div>
+                    <div class="step-content">
+                        <h3>Tekan START di Mesin</h3>
+                        <p>Tekan button START. LED jadi solid dan mesin mula basuh</p>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary btn-large" onclick="closeOnboarding()">
+                <span>Saya Faham, Mulakan!</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo-container">
+                    <div class="logo-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 6v6l4 2"></path>
+                        </svg>
+                    </div>
+                    <div class="logo-text">
+                        <h1 class="fredoka gradient-text">Smart Dobi</h1>
+                        <p class="text-muted small">Self-Service Laundry System</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <button class="btn btn-secondary" onclick="showOnboarding()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    <span class="hide-mobile">Panduan</span>
+                </button>
+                
+                <a href="instructions.html" class="btn btn-secondary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <span class="hide-mobile">Arahan</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Status Summary -->
+        <div class="status-grid">
+            <div class="status-card">
+                <div class="status-icon status-emerald">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <div class="status-info">
+                    <p class="text-muted small">Tersedia</p>
+                    <p class="fredoka status-value text-emerald" id="availableCount">0</p>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-icon status-cyan">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                </div>
+                <div class="status-info">
+                    <p class="text-muted small">Beroperasi</p>
+                    <p class="fredoka status-value text-cyan" id="workingCount">0</p>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-icon status-purple">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                </div>
+                <div class="status-info">
+                    <p class="text-muted small">Harga</p>
+                    <p class="fredoka status-value text-purple">RM 5</p>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-icon status-indigo">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                </div>
+                <div class="status-info">
+                    <p class="text-muted small">Masa</p>
+                    <p class="fredoka status-value text-indigo">30m</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert Banner -->
+        <div id="alertBanner" class="alert-banner" style="display: none;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <p>Semua mesin sedang digunakan atau dalam maintenance. Sila tunggu sebentar.</p>
+        </div>
+
+        <!-- Page Title -->
+        <div class="page-title">
+            <h2 class="text-light">Pilih mesin yang tersedia</h2>
+            <div class="live-badge">
+                <span class="pulse-dot"></span>
+                <span class="text-muted small">Status Real-Time</span>
+            </div>
+        </div>
+
+        <!-- Machines Grid -->
+        <div id="machinesGrid" class="machines-grid">
+            <!-- Machines will be loaded here -->
+            <div class="loading-container">
+                <div class="spinner"></div>
+                <p class="text-muted">Memuatkan mesin...</p>
+            </div>
+        </div>
+
+        <!-- Owner Login -->
+        <div class="owner-login">
+            <a href="dashboard.html" class="btn btn-secondary btn-large">
+                <span class="pulse-dot"></span>
+                <span>Owner Login</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <!-- Custom Scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
