@@ -121,28 +121,30 @@ function updateCounters(machines) {
     }
 }
 
-// Initialize default machines in Firebase
+// Initialize default machines in Firebase (only if empty)
 function initDefaultMachines() {
     machinesRef.once('value', (snapshot) => {
-        // Always reset to available for demo
-        const defaultMachines = {
-            "1": {
-                status: "available",
-                is_online: true,
-                whatsapp: null,
-                time_remaining: 0
-            },
-            "2": {
-                status: "available",
-                is_online: true,
-                whatsapp: null,
-                time_remaining: 0
-            }
-        };
-        
-        machinesRef.set(defaultMachines)
-            .then(() => console.log('Machines initialized'))
-            .catch((err) => console.error('Error:', err));
+        if (!snapshot.exists() || snapshot.numChildren() === 0) {
+            // Only create if no machines exist
+            const defaultMachines = {
+                "1": {
+                    status: "available",
+                    is_online: true,
+                    whatsapp: null,
+                    time_remaining: 0
+                },
+                "2": {
+                    status: "available",
+                    is_online: true,
+                    whatsapp: null,
+                    time_remaining: 0
+                }
+            };
+            
+            machinesRef.set(defaultMachines)
+                .then(() => console.log('Default machines created'))
+                .catch((err) => console.error('Error:', err));
+        }
     });
 }
 
