@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menunggu - Smart Dobi</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/waiting.css">
+</head>
+<body>
+    <div class="bg-container">
+        <div class="bg-gradient"></div>
+        <div class="bg-radial"></div>
+        <div class="bg-blur blur-1"></div>
+        <div class="bg-blur blur-2"></div>
+    </div>
+
+    <div class="container">
+        <div class="waiting-wrapper">
+            <!-- Waiting Card -->
+            <div class="waiting-card">
+                <!-- Success Header -->
+                <div class="success-header">
+                    <div class="success-icon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <h1 class="fredoka gradient-text">Pembayaran Berjaya!</h1>
+                    <p class="text-muted">Mesin <span id="machineNumber">1</span> telah ditempah untuk anda</p>
+                </div>
+
+                <!-- Washing Machine Animation -->
+                <div class="animation-container">
+                    <div class="washing-machine">
+                        <div class="machine-body">
+                            <div class="machine-door">
+                                <div class="door-ring"></div>
+                                <div class="door-inner">
+                                    <div class="clothes clothes-1"></div>
+                                    <div class="clothes clothes-2"></div>
+                                    <div class="clothes clothes-3"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="led-indicator blink"></div>
+                    </div>
+                </div>
+
+                <!-- Instructions -->
+                <div class="instruction-box">
+                    <div class="instruction-icon pulse">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                    </div>
+                    <h2 class="fredoka">Arahan Seterusnya</h2>
+                    <div class="steps-list">
+                        <div class="step-item">
+                            <span class="step-num">1</span>
+                            <p>Pergi ke <strong>Mesin <span class="machine-num">1</span></strong></p>
+                        </div>
+                        <div class="step-item">
+                            <span class="step-num">2</span>
+                            <p>LED akan <strong class="text-amber">berkelip</strong> menunjukkan mesin anda</p>
+                        </div>
+                        <div class="step-item">
+                            <span class="step-num">3</span>
+                            <p><strong>Masukkan pakaian</strong> ke dalam mesin</p>
+                        </div>
+                        <div class="step-item">
+                            <span class="step-num">4</span>
+                            <p>Tekan <strong class="text-emerald">butang START</strong> pada mesin</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timer Info -->
+                <div id="statusBox" class="status-box">
+                    <div class="status-icon waiting">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <div class="status-text">
+                        <p class="status-label">Status Mesin</p>
+                        <p class="status-value fredoka" id="machineStatus">Menunggu anda tekan START...</p>
+                    </div>
+                </div>
+
+                <!-- Back Button -->
+                <a href="index.html" class="btn btn-secondary btn-large btn-full" id="backBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    <span>Kembali ke Halaman Utama</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/waiting.js"></script>
+</body>
+</html>
