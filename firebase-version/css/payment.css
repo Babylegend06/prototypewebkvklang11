@@ -1,174 +1,128 @@
-/* Payment Page Styles */
+/* Payment Page Styles - Matching Reference Design */
 
 .back-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    color: #94a3b8;
+    color: rgba(255, 255, 255, 0.8);
     text-decoration: none;
     padding: 0.75rem 1rem;
     border-radius: 12px;
     transition: all 0.3s ease;
     margin-bottom: 1.5rem;
+    position: absolute;
+    top: 2rem;
+    left: 2rem;
 }
 
 .back-btn:hover {
-    color: #f1f5f9;
-    background: rgba(30, 41, 59, 0.5);
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .payment-wrapper {
     display: flex;
     justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 2rem;
     animation: fadeInUp 0.6s ease;
 }
 
 .payment-card {
-    background: rgba(15, 23, 42, 0.8);
+    background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(20px);
-    border: 1px solid #334155;
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 24px;
-    padding: 2rem;
+    padding: 2.5rem;
     max-width: 450px;
     width: 100%;
+    text-align: center;
 }
 
 .payment-header {
-    text-align: center;
     margin-bottom: 2rem;
 }
 
 .machine-badge {
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 1rem;
-    border-radius: 16px;
-    background: linear-gradient(135deg, #06b6d4 0%, #6366f1 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 8px 24px rgba(6, 182, 212, 0.3);
+    display: none;
 }
 
 .payment-header h1 {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-}
-
-/* QR Section */
-.qr-section {
-    text-align: center;
-    margin-bottom: 1.5rem;
-}
-
-.qr-container {
-    position: relative;
-    display: inline-block;
-    padding: 1rem;
-    background: white;
-    border-radius: 16px;
-    margin-bottom: 0.75rem;
-}
-
-.qr-image {
-    display: block;
-    width: 180px;
-    height: 180px;
-}
-
-.qr-overlay {
-    position: absolute;
-    bottom: 0.5rem;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.7);
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-}
-
-.qr-hint {
-    font-size: 0.875rem;
-    color: #94a3b8;
-}
-
-/* Amount Display */
-.amount-display {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.5rem;
-    background: rgba(6, 182, 212, 0.1);
-    border: 1px solid rgba(6, 182, 212, 0.3);
-    border-radius: 12px;
-    margin-bottom: 1.5rem;
-}
-
-.amount-label {
-    font-size: 0.875rem;
-    color: #94a3b8;
-}
-
-.amount-value {
     font-size: 1.75rem;
-    color: #22d3ee;
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.payment-header p {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.95rem;
+}
+
+/* QR Section - Hidden for simple design */
+.qr-section {
+    display: none;
+}
+
+/* Amount Display - Hidden */
+.amount-display {
+    display: none;
 }
 
 /* WhatsApp Section */
 .whatsapp-section {
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .input-label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    color: #f1f5f9;
-    margin-bottom: 0.5rem;
+    display: block;
+    font-size: 0.9rem;
+    color: #ffffff;
+    margin-bottom: 0.75rem;
+    text-align: left;
+}
+
+.input-label svg {
+    display: none;
 }
 
 .input-group {
     display: flex;
-    background: rgba(30, 41, 59, 0.5);
-    border: 1px solid #334155;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 12px;
     overflow: hidden;
     transition: all 0.3s ease;
 }
 
 .input-group:focus-within {
-    border-color: #06b6d4;
-    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
 }
 
 .input-prefix {
-    display: flex;
-    align-items: center;
-    padding: 0 1rem;
-    background: rgba(30, 41, 59, 0.8);
-    color: #94a3b8;
-    font-weight: 600;
-    border-right: 1px solid #334155;
+    display: none;
 }
 
 .input-group input {
     flex: 1;
-    padding: 0.875rem 1rem;
+    padding: 1rem 1.25rem;
     background: transparent;
     border: none;
-    color: #f1f5f9;
+    color: #ffffff;
     font-size: 1rem;
     outline: none;
+    width: 100%;
 }
 
 .input-group input::placeholder {
-    color: #64748b;
+    color: rgba(255, 255, 255, 0.5);
 }
 
 .input-hint {
-    font-size: 0.75rem;
-    color: #64748b;
-    margin-top: 0.5rem;
+    display: none;
 }
 
 /* Buttons */
@@ -182,25 +136,40 @@
     font-size: 1rem;
 }
 
-/* Demo Notice */
+#confirmBtn {
+    background: rgba(255, 255, 255, 0.9);
+    color: #667eea;
+    border: none;
+    border-radius: 25px;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+#confirmBtn:hover {
+    background: #ffffff;
+    transform: scale(1.02);
+    box-shadow: 0 8px 24px rgba(255, 255, 255, 0.3);
+}
+
+#confirmBtn svg {
+    display: none;
+}
+
+/* Demo Notice - Hidden */
 .demo-notice {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    margin-top: 1rem;
-    padding: 0.75rem;
-    background: rgba(245, 158, 11, 0.1);
-    border-radius: 8px;
-    font-size: 0.75rem;
-    color: #fcd34d;
+    display: none;
 }
 
 /* Loading Overlay */
 .loading-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(2, 6, 23, 0.9);
+    background: rgba(102, 126, 234, 0.95);
     backdrop-filter: blur(8px);
     z-index: 1000;
     display: flex;
@@ -215,11 +184,16 @@
 .spinner-large {
     width: 64px;
     height: 64px;
-    border: 4px solid rgba(6, 182, 212, 0.2);
-    border-top-color: #06b6d4;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #ffffff;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin: 0 auto 1rem;
+}
+
+.loading-content p {
+    color: #ffffff;
+    font-size: 1.1rem;
 }
 
 @keyframes spin {
@@ -229,11 +203,11 @@
 /* Responsive */
 @media (max-width: 480px) {
     .payment-card {
-        padding: 1.5rem;
+        padding: 2rem 1.5rem;
     }
     
-    .qr-image {
-        width: 150px;
-        height: 150px;
+    .back-btn {
+        top: 1rem;
+        left: 1rem;
     }
 }
