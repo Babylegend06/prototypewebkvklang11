@@ -130,7 +130,7 @@ const char* WIFI_SSID = "YOUR_WIFI_SSID";          // ← Tukar dengan WiFi name
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";  // ← Tukar dengan WiFi password
 
 // Backend API Configuration
-const char* BACKEND_URL = "https://dobi-alert.preview.emergentagent.com";  // ← URL web anda
+const char* BACKEND_URL = "https://iot-laundry.preview.emergentagent.com";  // ← URL web anda
 
 // WasapBot.my Configuration  
 const char* WASAPBOT_INSTANCE_ID = "YOUR_INSTANCE_ID";    // ← Dari dashboard WasapBot.my
@@ -223,7 +223,7 @@ Serial Monitor should show every 2 seconds:
 
 ### Test 3: Start Machine dari Web
 
-1. Buka web: https://dobi-alert.preview.emergentagent.com/
+1. Buka web: https://iot-laundry.preview.emergentagent.com/
 2. Click Mesin 1
 3. Masuk WhatsApp number
 4. Click "Sahkan Pembayaran"
@@ -384,7 +384,7 @@ Smart Dobi Ready!
 
 Anda boleh tengok project di:
 
-1. **Web Application**: https://dobi-alert.preview.emergentagent.com/
+1. **Web Application**: https://iot-laundry.preview.emergentagent.com/
 2. **Arduino Firmware**: `/app/SmartDobi_ESP32S3.ino`
 3. **Backend Code**: `/app/backend/server.py`
 4. **System Flow**: `/app/SYSTEM_FLOW.md`

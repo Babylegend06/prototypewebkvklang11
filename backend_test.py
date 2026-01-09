@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 class SmartDobiAPITester:
-    def __init__(self, base_url="https://dobi-alert.preview.emergentagent.com"):
+    def __init__(self, base_url="https://iot-laundry.preview.emergentagent.com"):
         self.base_url = base_url
         self.session_token = None
         self.tests_run = 0
@@ -313,7 +313,7 @@ class SmartDobiAPITester:
 
 def main():
     print("🚀 Starting Smart Dobi API Testing...")
-    print(f"Testing against: https://dobi-alert.preview.emergentagent.com")
+    print(f"Testing against: https://iot-laundry.preview.emergentagent.com")
     
     tester = SmartDobiAPITester()
     

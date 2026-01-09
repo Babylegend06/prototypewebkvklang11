@@ -104,7 +104,7 @@ After updating credentials and restarting backend, test the complete flow:
 
 1. **Start Machine** (should send WhatsApp):
    ```bash
-   curl -X POST https://dobi-alert.preview.emergentagent.com/api/machines/1/start \
+   curl -X POST https://iot-laundry.preview.emergentagent.com/api/machines/1/start \
      -H "Content-Type: application/json" \
      -d '{"whatsapp_number": "YOUR_PHONE", "amount": 5.00}'
    ```

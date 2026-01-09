@@ -31,7 +31,7 @@ const char* WIFI_SSID = "YOUR_WIFI_SSID";
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
 // Backend API Configuration
-const char* BACKEND_URL = "https://dobi-alert.preview.emergentagent.com";
+const char* BACKEND_URL = "https://iot-laundry.preview.emergentagent.com";
 const char* API_BASE = "/api";
 
 // Mode Selection: true = DEMO (120s), false = PRODUCTION (1800s)
