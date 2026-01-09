@@ -174,16 +174,52 @@ function updateCounters(machines) {
     }
 }
 
+// Initialize default machines in Firebase
+function initDefaultMachines() {
+    machinesRef.once('value', (snapshot) => {
+        if (!snapshot.exists()) {
+            // Create default machines if none exist
+            const defaultMachines = {
+                "1": {
+                    status: "available",
+                    is_online: true,
+                    whatsapp: null,
+                    time_remaining: 0
+                },
+                "2": {
+                    status: "available",
+                    is_online: true,
+                    whatsapp: null,
+                    time_remaining: 0
+                },
+                "3": {
+                    status: "available",
+                    is_online: true,
+                    whatsapp: null,
+                    time_remaining: 0
+                }
+            };
+            
+            machinesRef.set(defaultMachines)
+                .then(() => console.log('Default machines created'))
+                .catch((err) => console.error('Error creating machines:', err));
+        }
+    });
+}
+
 // Load and listen to machines
 function loadMachines() {
     const grid = document.getElementById('machinesGrid');
+    
+    // Initialize default machines first
+    initDefaultMachines();
     
     machinesRef.on('value', (snapshot) => {
         const machines = snapshot.val();
         
         if (!machines) {
             grid.innerHTML = `<div class="loading-container">
-                <p class="text-muted">Tiada mesin dijumpai. Sila hubungi pemilik.</p>
+                <p class="text-muted">Memuatkan mesin...</p>
             </div>`;
             return;
         }
