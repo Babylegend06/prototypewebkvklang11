@@ -1,167 +1,167 @@
 /*
  * ============================================
- * SMART DOBI - ESP32 S3 FIRMWARE
+ * SMART DOBI - ESP32 S3 FIRMWARE v2.0
  * ============================================
  * 
- * Sistem Kawalan Mesin Dobi IoT
- * - Sambungan WiFi & Firebase
- * - Kawalan Relay & LED
- * - Butang START fizikal
- * - Notifikasi WhatsApp via WasapBot
- * - Heartbeat monitoring
+ * Real-time Timer Master untuk Web Display
+ * Firebase Realtime Database Integration
+ * WasapBot WhatsApp Notifications
  * 
- * Hardware:
- * - ESP32 S3 DevKit
- * - Relay Module (Active LOW)
- * - LED Indicator
- * - Push Button (START)
+ * PENTING: ESP32 adalah MASTER untuk timer!
+ * Web hanya membaca time_remaining dari Firebase.
+ * 
+ * Hardware Connections:
+ * - GPIO 4: Relay (Active LOW)
+ * - GPIO 5: LED Status
+ * - GPIO 6: Push Button START (INPUT_PULLUP)
  * 
  * Author: Smart Dobi FYP
- * Version: 1.0.0
+ * Version: 2.0.0
  */
 
 #include <WiFi.h>
 #include <Firebase_ESP_Client.h>
 #include <HTTPClient.h>
-#include <ArduinoJson.h>
+#include <addons/TokenHelper.h>
+#include <addons/RTDBHelper.h>
 
-// ==================== KONFIGURASI ====================
+// ==================== CONFIGURATION ====================
+// !!! TUKAR NILAI-NILAI INI !!!
 
-// WiFi Configuration
-#define WIFI_SSID "YOUR_WIFI_SSID"          // Tukar ke WiFi anda
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"   // Tukar ke password WiFi
+// WiFi Settings
+#define WIFI_SSID "NAMA_WIFI_ANDA"
+#define WIFI_PASSWORD "PASSWORD_WIFI_ANDA"
 
-// Firebase Configuration
+// Firebase Settings
 #define FIREBASE_API_KEY "AIzaSyBPaObgmHZBQR8-0aX3pTUOFeMOxIsn0Lc"
 #define FIREBASE_DATABASE_URL "https://smart-dobi-system-fyp-default-rtdb.asia-southeast1.firebasedatabase.app"
 
-// WasapBot Configuration
+// WasapBot Settings
 #define WASAPBOT_API_URL "https://dash.wasapbot.my/whatsapp_api"
-#define WASAPBOT_INSTANCE_ID "609ACF283XXXX"  // Ganti dengan instance ID anda
-#define WASAPBOT_ACCESS_TOKEN "695df3770b34a" // Ganti dengan access token anda
+#define WASAPBOT_INSTANCE_ID "YOUR_INSTANCE_ID"
+#define WASAPBOT_ACCESS_TOKEN "YOUR_ACCESS_TOKEN"
 
-// Machine Configuration
-#define MACHINE_ID "1"                       // ID mesin ini (1, 2, 3, dll)
-#define WASH_TIME_SECONDS 1800               // 30 minit = 1800 saat
-#define REMINDER_TIME_SECONDS 300            // Peringatan 5 minit sebelum siap
+// Machine Settings
+#define MACHINE_ID "1"              // "1" atau "2" sahaja (real machines)
+#define WASH_DURATION_SEC 1800      // 30 minit = 1800 saat
+#define REMINDER_TIME_SEC 300       // Peringatan 5 minit sebelum siap
+#define PRICE_PER_WASH 5            // RM 5
 
-// Pin Configuration
-#define PIN_RELAY 4          // GPIO untuk Relay
-#define PIN_LED 5            // GPIO untuk LED
-#define PIN_BUTTON 6         // GPIO untuk Button START
+// Hardware Pins
+#define PIN_RELAY 4
+#define PIN_LED 5
+#define PIN_BUTTON 6
+
+// Timing Constants
+#define FIREBASE_UPDATE_MS 2000     // Update Firebase setiap 2 saat
+#define HEARTBEAT_MS 10000          // Heartbeat setiap 10 saat
+#define LED_BLINK_MS 500            // LED blink interval
+#define BUTTON_DEBOUNCE_MS 50       // Button debounce
 
 // ==================== OBJECTS ====================
-
 FirebaseData fbdo;
-FirebaseAuth fbAuth;
-FirebaseConfig fbConfig;
+FirebaseAuth auth;
+FirebaseConfig config;
 
-// ==================== VARIABLES ====================
-
-// Machine State
-enum MachineState {
-    STATE_IDLE,         // Mesin sedia (available)
-    STATE_RESERVED,     // Ditempah, menunggu START
-    STATE_WASHING,      // Sedang basuh
-    STATE_COMPLETED     // Siap
+// ==================== STATE ====================
+enum State {
+    IDLE,       // Menunggu pelanggan
+    RESERVED,   // Ditempah, menunggu START
+    WASHING,    // Sedang basuh
+    COMPLETED   // Selesai
 };
 
-MachineState currentState = STATE_IDLE;
-String currentWhatsApp = "";
+State currentState = IDLE;
+String customerWhatsApp = "";
+
+// Timer Variables
 unsigned long washStartTime = 0;
 int timeRemaining = 0;
 bool reminderSent = false;
 
-// Timing
+// Timing Variables
 unsigned long lastFirebaseUpdate = 0;
 unsigned long lastHeartbeat = 0;
-unsigned long lastButtonCheck = 0;
 unsigned long lastLedToggle = 0;
+unsigned long lastButtonCheck = 0;
 
-const unsigned long FIREBASE_UPDATE_INTERVAL = 2000;   // 2 saat
-const unsigned long HEARTBEAT_INTERVAL = 10000;        // 10 saat
-const unsigned long BUTTON_DEBOUNCE = 50;              // 50ms
-const unsigned long LED_BLINK_INTERVAL = 500;          // 500ms untuk blink
-
-// LED State
+// LED & Button State
 bool ledState = false;
-
-// Button State
 bool lastButtonState = HIGH;
-bool buttonPressed = false;
 
 // ==================== SETUP ====================
-
 void setup() {
     Serial.begin(115200);
-    Serial.println("\n");
-    Serial.println("==========================================");
-    Serial.println("   SMART DOBI - ESP32 S3 FIRMWARE");
-    Serial.println("==========================================");
+    delay(1000);
+    
+    Serial.println("\n========================================");
+    Serial.println("    SMART DOBI ESP32 - v2.0");
+    Serial.println("========================================");
     Serial.println("Machine ID: " + String(MACHINE_ID));
+    Serial.println("Wash Duration: " + String(WASH_DURATION_SEC) + " seconds");
+    Serial.println("----------------------------------------");
     
     // Initialize Pins
     pinMode(PIN_RELAY, OUTPUT);
     pinMode(PIN_LED, OUTPUT);
     pinMode(PIN_BUTTON, INPUT_PULLUP);
     
-    // Initial State - OFF
+    // Initial State - All OFF
     digitalWrite(PIN_RELAY, HIGH);  // Relay OFF (Active LOW)
-    digitalWrite(PIN_LED, LOW);     // LED OFF
+    digitalWrite(PIN_LED, LOW);
     
-    // Connect WiFi
+    // Connect to WiFi
     connectWiFi();
     
     // Initialize Firebase
     initFirebase();
     
-    // Set initial state in Firebase
-    setMachineOnline(true);
+    // Set machine as online and available
+    updateMachineOnline(true);
     updateMachineStatus("available", 0);
     
-    Serial.println("Setup complete!");
-    Serial.println("==========================================\n");
+    Serial.println("========================================");
+    Serial.println("Setup Complete! Ready to operate.");
+    Serial.println("========================================\n");
 }
 
 // ==================== MAIN LOOP ====================
-
 void loop() {
-    unsigned long currentMillis = millis();
+    unsigned long now = millis();
     
-    // Check WiFi connection
+    // Check WiFi
     if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("WiFi disconnected! Reconnecting...");
+        Serial.println("⚠️ WiFi Lost! Reconnecting...");
         connectWiFi();
     }
     
-    // Handle button press
-    handleButton(currentMillis);
+    // Handle Button
+    handleButton(now);
     
     // Handle LED based on state
-    handleLED(currentMillis);
+    handleLED(now);
     
-    // Handle washing timer
-    if (currentState == STATE_WASHING) {
-        handleWashing(currentMillis);
+    // Handle Washing Timer
+    if (currentState == WASHING) {
+        handleWashingTimer(now);
     }
     
-    // Check Firebase for status changes
-    if (currentMillis - lastFirebaseUpdate >= FIREBASE_UPDATE_INTERVAL) {
-        lastFirebaseUpdate = currentMillis;
+    // Check Firebase for status changes (from web/dashboard)
+    if (now - lastFirebaseUpdate >= FIREBASE_UPDATE_MS) {
+        lastFirebaseUpdate = now;
         checkFirebaseStatus();
     }
     
-    // Send heartbeat
-    if (currentMillis - lastHeartbeat >= HEARTBEAT_INTERVAL) {
-        lastHeartbeat = currentMillis;
+    // Send Heartbeat
+    if (now - lastHeartbeat >= HEARTBEAT_MS) {
+        lastHeartbeat = now;
         sendHeartbeat();
     }
 }
 
-// ==================== WiFi FUNCTIONS ====================
-
+// ==================== WIFI ====================
 void connectWiFi() {
-    Serial.print("Connecting to WiFi: ");
+    Serial.print("📶 Connecting to WiFi: ");
     Serial.println(WIFI_SSID);
     
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -174,56 +174,54 @@ void connectWiFi() {
     }
     
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("\nWiFi connected!");
-        Serial.print("IP Address: ");
+        Serial.println("\n✅ WiFi Connected!");
+        Serial.print("   IP: ");
         Serial.println(WiFi.localIP());
     } else {
-        Serial.println("\nFailed to connect to WiFi!");
+        Serial.println("\n❌ WiFi Connection Failed!");
     }
 }
 
-// ==================== FIREBASE FUNCTIONS ====================
-
+// ==================== FIREBASE ====================
 void initFirebase() {
-    Serial.println("Initializing Firebase...");
+    Serial.println("🔥 Initializing Firebase...");
     
-    fbConfig.api_key = FIREBASE_API_KEY;
-    fbConfig.database_url = FIREBASE_DATABASE_URL;
+    config.api_key = FIREBASE_API_KEY;
+    config.database_url = FIREBASE_DATABASE_URL;
     
-    // Anonymous authentication
-    fbAuth.user.email = "";
-    fbAuth.user.password = "";
+    // Anonymous sign in
+    auth.user.email = "";
+    auth.user.password = "";
     
-    Firebase.begin(&fbConfig, &fbAuth);
+    Firebase.begin(&config, &auth);
     Firebase.reconnectWiFi(true);
     
-    // Set database read timeout
-    fbConfig.timeout.serverResponse = 10 * 1000;
+    config.timeout.serverResponse = 10000;
     
-    Serial.println("Firebase initialized!");
+    Serial.println("✅ Firebase Initialized!");
 }
 
-void setMachineOnline(bool online) {
+void updateMachineOnline(bool online) {
     String path = "/machines/" + String(MACHINE_ID) + "/is_online";
     
     if (Firebase.RTDB.setBool(&fbdo, path, online)) {
-        Serial.println("Online status set: " + String(online ? "true" : "false"));
-    } else {
-        Serial.println("Failed to set online status: " + fbdo.errorReason());
+        Serial.println(online ? "🟢 Online" : "🔴 Offline");
     }
 }
 
 void updateMachineStatus(String status, int timeLeft) {
     String basePath = "/machines/" + String(MACHINE_ID);
     
-    // Update status
-    if (Firebase.RTDB.setString(&fbdo, basePath + "/status", status)) {
-        Serial.println("Status updated: " + status);
+    FirebaseJson json;
+    json.set("status", status);
+    json.set("time_remaining", timeLeft);
+    
+    if (status == "available") {
+        json.set("whatsapp", "");
     }
     
-    // Update time remaining
-    if (Firebase.RTDB.setInt(&fbdo, basePath + "/time_remaining", timeLeft)) {
-        Serial.println("Time remaining: " + String(timeLeft) + "s");
+    if (Firebase.RTDB.updateNode(&fbdo, basePath, &json)) {
+        Serial.println("📝 Status: " + status + " | Timer: " + String(timeLeft) + "s");
     }
 }
 
@@ -232,168 +230,158 @@ void checkFirebaseStatus() {
     
     if (Firebase.RTDB.getJSON(&fbdo, path)) {
         FirebaseJson &json = fbdo.jsonObject();
-        FirebaseJsonData jsonData;
+        FirebaseJsonData data;
         
-        // Get status
-        if (json.get(jsonData, "status")) {
-            String status = jsonData.stringValue;
+        // Get current status from Firebase
+        if (json.get(data, "status")) {
+            String status = data.stringValue;
             
-            // Check for state transitions
-            if (currentState == STATE_IDLE && status == "reserved") {
-                // Payment confirmed, waiting for START
-                currentState = STATE_RESERVED;
+            // Detect state changes from web
+            if (currentState == IDLE && status == "reserved") {
+                // Payment confirmed from web!
+                currentState = RESERVED;
                 reminderSent = false;
                 
                 // Get WhatsApp number
-                if (json.get(jsonData, "whatsapp")) {
-                    currentWhatsApp = jsonData.stringValue;
+                if (json.get(data, "whatsapp")) {
+                    customerWhatsApp = data.stringValue;
                 }
                 
-                Serial.println(">> RESERVED - Waiting for START button");
-                Serial.println("WhatsApp: " + currentWhatsApp);
+                Serial.println("\n🔔 ========== NEW RESERVATION ==========");
+                Serial.println("   WhatsApp: " + customerWhatsApp);
+                Serial.println("   Waiting for START button...");
+                Serial.println("   =====================================\n");
                 
                 // Send WhatsApp notification
-                if (currentWhatsApp.length() > 0) {
-                    sendWhatsAppMessage(currentWhatsApp, 
+                if (customerWhatsApp.length() > 0) {
+                    sendWhatsApp(customerWhatsApp,
                         "🧺 *SMART DOBI*\n\n"
-                        "Pembayaran diterima! ✅\n\n"
-                        "Mesin " + String(MACHINE_ID) + " telah ditempah.\n"
-                        "Sila masukkan pakaian dan tekan butang START pada mesin.\n\n"
-                        "LED berkelip menunjukkan mesin anda."
+                        "✅ Pembayaran diterima!\n\n"
+                        "Mesin " + String(MACHINE_ID) + " telah ditempah untuk anda.\n\n"
+                        "📍 Sila pergi ke mesin\n"
+                        "💡 LED berkelip kuning\n"
+                        "👆 Tekan butang START\n\n"
+                        "Terima kasih! 🙏"
                     );
                 }
             }
-            else if (status == "available" && currentState != STATE_IDLE) {
-                // Reset by owner or completed
-                currentState = STATE_IDLE;
-                stopMachine();
-                Serial.println(">> RESET to IDLE");
+            else if (status == "available" && currentState != IDLE) {
+                // Reset from dashboard
+                resetMachine();
+                Serial.println("🔄 Reset from Dashboard");
             }
         }
-    } else {
-        Serial.println("Firebase read error: " + fbdo.errorReason());
     }
 }
 
 void sendHeartbeat() {
     String path = "/machines/" + String(MACHINE_ID) + "/last_heartbeat";
-    
-    if (Firebase.RTDB.setInt(&fbdo, path, millis())) {
-        Serial.println("Heartbeat sent");
-    }
-    
-    // Also update online status
-    setMachineOnline(true);
+    Firebase.RTDB.setInt(&fbdo, path, millis());
+    updateMachineOnline(true);
 }
 
-// ==================== BUTTON HANDLING ====================
-
-void handleButton(unsigned long currentMillis) {
-    if (currentMillis - lastButtonCheck < BUTTON_DEBOUNCE) {
-        return;
-    }
-    lastButtonCheck = currentMillis;
+// ==================== BUTTON ====================
+void handleButton(unsigned long now) {
+    if (now - lastButtonCheck < BUTTON_DEBOUNCE_MS) return;
+    lastButtonCheck = now;
     
     bool buttonState = digitalRead(PIN_BUTTON);
     
-    // Button pressed (LOW because of INPUT_PULLUP)
+    // Button pressed (LOW due to INPUT_PULLUP)
     if (buttonState == LOW && lastButtonState == HIGH) {
-        buttonPressed = true;
-        Serial.println("Button pressed!");
+        Serial.println("🔘 Button Pressed!");
         
-        // Only start if in RESERVED state
-        if (currentState == STATE_RESERVED) {
+        if (currentState == RESERVED) {
             startWashing();
         } else {
-            Serial.println("Cannot start - not in RESERVED state");
+            Serial.println("   (Ignored - not in RESERVED state)");
         }
     }
     
     lastButtonState = buttonState;
 }
 
-// ==================== LED HANDLING ====================
-
-void handleLED(unsigned long currentMillis) {
+// ==================== LED ====================
+void handleLED(unsigned long now) {
     switch (currentState) {
-        case STATE_IDLE:
+        case IDLE:
             // LED OFF
             digitalWrite(PIN_LED, LOW);
             break;
             
-        case STATE_RESERVED:
-            // LED BLINK
-            if (currentMillis - lastLedToggle >= LED_BLINK_INTERVAL) {
-                lastLedToggle = currentMillis;
+        case RESERVED:
+            // LED BLINK (waiting for START)
+            if (now - lastLedToggle >= LED_BLINK_MS) {
+                lastLedToggle = now;
                 ledState = !ledState;
-                digitalWrite(PIN_LED, ledState ? HIGH : LOW);
+                digitalWrite(PIN_LED, ledState);
             }
             break;
             
-        case STATE_WASHING:
+        case WASHING:
             // LED SOLID ON
             digitalWrite(PIN_LED, HIGH);
             break;
             
-        case STATE_COMPLETED:
+        case COMPLETED:
             // LED OFF
             digitalWrite(PIN_LED, LOW);
             break;
     }
 }
 
-// ==================== WASHING FUNCTIONS ====================
-
+// ==================== WASHING ====================
 void startWashing() {
-    Serial.println("==========================================");
-    Serial.println(">> STARTING WASH CYCLE");
-    Serial.println("==========================================");
+    Serial.println("\n🚀 ========== STARTING WASH CYCLE ==========");
     
-    currentState = STATE_WASHING;
+    currentState = WASHING;
     washStartTime = millis();
-    timeRemaining = WASH_TIME_SECONDS;
+    timeRemaining = WASH_DURATION_SEC;
+    reminderSent = false;
     
-    // Turn ON relay
+    // Turn ON Relay
     digitalWrite(PIN_RELAY, LOW);  // Active LOW
-    Serial.println("Relay ON - Machine running");
+    Serial.println("   ⚡ Relay ON - Machine Running");
     
     // Update Firebase
     updateMachineStatus("washing", timeRemaining);
     
-    // Send WhatsApp notification
-    if (currentWhatsApp.length() > 0) {
-        sendWhatsAppMessage(currentWhatsApp,
+    // Record transaction
+    recordTransaction();
+    
+    // Send WhatsApp
+    if (customerWhatsApp.length() > 0) {
+        sendWhatsApp(customerWhatsApp,
             "🧺 *SMART DOBI*\n\n"
-            "Mesin " + String(MACHINE_ID) + " telah bermula! 🔄\n\n"
-            "Masa basuhan: 30 minit\n"
-            "Anda akan dimaklumkan bila hampir siap.\n\n"
+            "🔄 Mesin " + String(MACHINE_ID) + " mula beroperasi!\n\n"
+            "⏱️ Masa: 30 minit\n\n"
+            "Anda akan dimaklumkan bila hampir siap.\n"
             "Terima kasih! 😊"
         );
     }
     
-    // Record transaction
-    recordTransaction();
+    Serial.println("   ============================================\n");
 }
 
-void handleWashing(unsigned long currentMillis) {
-    // Calculate time remaining
-    unsigned long elapsedSeconds = (currentMillis - washStartTime) / 1000;
-    timeRemaining = WASH_TIME_SECONDS - elapsedSeconds;
+void handleWashingTimer(unsigned long now) {
+    // Calculate remaining time
+    unsigned long elapsed = (now - washStartTime) / 1000;
+    timeRemaining = WASH_DURATION_SEC - elapsed;
     
     if (timeRemaining < 0) timeRemaining = 0;
     
-    // Update Firebase every 2 seconds
+    // Update Firebase with current time (THIS IS THE MASTER TIMER!)
     updateMachineStatus("washing", timeRemaining);
     
-    // Send reminder at 5 minutes remaining
-    if (!reminderSent && timeRemaining <= REMINDER_TIME_SECONDS && timeRemaining > 0) {
+    // Send reminder at 5 minutes
+    if (!reminderSent && timeRemaining <= REMINDER_TIME_SEC && timeRemaining > 0) {
         reminderSent = true;
-        Serial.println(">> Sending 5-minute reminder");
+        Serial.println("⏰ Sending 5-minute reminder...");
         
-        if (currentWhatsApp.length() > 0) {
-            sendWhatsAppMessage(currentWhatsApp,
+        if (customerWhatsApp.length() > 0) {
+            sendWhatsApp(customerWhatsApp,
                 "🧺 *SMART DOBI*\n\n"
-                "⏰ *PERINGATAN*\n\n"
+                "⏰ *PERINGATAN!*\n\n"
                 "Mesin " + String(MACHINE_ID) + " akan siap dalam 5 minit!\n\n"
                 "Sila bersiap untuk mengambil pakaian anda. 👕"
             );
@@ -407,143 +395,113 @@ void handleWashing(unsigned long currentMillis) {
 }
 
 void completeWashing() {
-    Serial.println("==========================================");
-    Serial.println(">> WASH CYCLE COMPLETED");
-    Serial.println("==========================================");
+    Serial.println("\n✅ ========== WASH COMPLETE ==========");
     
-    currentState = STATE_COMPLETED;
+    currentState = COMPLETED;
     
-    // Turn OFF relay
-    digitalWrite(PIN_RELAY, HIGH);  // Active LOW - OFF
-    Serial.println("Relay OFF - Machine stopped");
+    // Turn OFF Relay
+    digitalWrite(PIN_RELAY, HIGH);
+    Serial.println("   ⚡ Relay OFF - Machine Stopped");
     
     // Update Firebase
     updateMachineStatus("available", 0);
     
-    // Clear WhatsApp
-    String path = "/machines/" + String(MACHINE_ID) + "/whatsapp";
-    Firebase.RTDB.setString(&fbdo, path, "");
-    
-    // Send completion notification
-    if (currentWhatsApp.length() > 0) {
-        sendWhatsAppMessage(currentWhatsApp,
+    // Send completion WhatsApp
+    if (customerWhatsApp.length() > 0) {
+        sendWhatsApp(customerWhatsApp,
             "🧺 *SMART DOBI*\n\n"
             "✅ *BASUHAN SIAP!*\n\n"
             "Mesin " + String(MACHINE_ID) + " telah selesai.\n\n"
-            "Sila ambil pakaian anda sekarang.\n"
+            "📍 Sila ambil pakaian anda sekarang.\n\n"
             "Terima kasih kerana menggunakan Smart Dobi! 🙏"
         );
     }
     
-    // Reset
-    currentWhatsApp = "";
-    currentState = STATE_IDLE;
+    // Reset state
+    resetMachine();
+    
+    Serial.println("   ======================================\n");
 }
 
-void stopMachine() {
-    // Turn OFF relay
-    digitalWrite(PIN_RELAY, HIGH);
-    
-    // Reset variables
+void resetMachine() {
+    currentState = IDLE;
+    customerWhatsApp = "";
     washStartTime = 0;
     timeRemaining = 0;
-    currentWhatsApp = "";
     reminderSent = false;
     
-    Serial.println("Machine stopped and reset");
+    digitalWrite(PIN_RELAY, HIGH);
+    digitalWrite(PIN_LED, LOW);
 }
 
-// ==================== WHATSAPP FUNCTIONS ====================
-
-void sendWhatsAppMessage(String phoneNumber, String message) {
+// ==================== WHATSAPP ====================
+void sendWhatsApp(String number, String message) {
     if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("Cannot send WhatsApp - WiFi not connected");
+        Serial.println("❌ Cannot send WhatsApp - No WiFi");
         return;
     }
     
-    Serial.println("Sending WhatsApp to: " + phoneNumber);
+    Serial.println("📱 Sending WhatsApp to: " + number);
     
     HTTPClient http;
     http.begin(WASAPBOT_API_URL);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     
-    // Prepare POST data
     String postData = "instance_id=" + String(WASAPBOT_INSTANCE_ID);
     postData += "&access_token=" + String(WASAPBOT_ACCESS_TOKEN);
-    postData += "&number=" + phoneNumber;
+    postData += "&number=" + number;
     postData += "&message=" + urlEncode(message);
     
     int httpCode = http.POST(postData);
     
     if (httpCode > 0) {
-        String response = http.getString();
-        Serial.println("WhatsApp API Response: " + response);
-        
-        if (httpCode == 200) {
-            Serial.println("WhatsApp sent successfully!");
-        } else {
-            Serial.println("WhatsApp API error code: " + String(httpCode));
-        }
+        Serial.println("   Response: " + http.getString());
     } else {
-        Serial.println("HTTP error: " + http.errorToString(httpCode));
+        Serial.println("   Error: " + http.errorToString(httpCode));
     }
     
     http.end();
 }
 
 String urlEncode(String str) {
-    String encodedString = "";
+    String encoded = "";
     char c;
-    char code0;
-    char code1;
     
     for (int i = 0; i < str.length(); i++) {
         c = str.charAt(i);
-        
         if (c == ' ') {
-            encodedString += '+';
-        } else if (isalnum(c)) {
-            encodedString += c;
+            encoded += '+';
+        } else if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+            encoded += c;
         } else {
-            code1 = (c & 0xf) + '0';
-            if ((c & 0xf) > 9) code1 = (c & 0xf) - 10 + 'A';
-            c = (c >> 4) & 0xf;
-            code0 = c + '0';
-            if (c > 9) code0 = c - 10 + 'A';
-            encodedString += '%';
-            encodedString += code0;
-            encodedString += code1;
+            char buf[4];
+            sprintf(buf, "%%%02X", (unsigned char)c);
+            encoded += buf;
         }
     }
     
-    return encodedString;
+    return encoded;
 }
 
-// ==================== TRANSACTION RECORDING ====================
-
+// ==================== TRANSACTION ====================
 void recordTransaction() {
     // Get today's date (simplified - use NTP for production)
-    String today = "2025-01-09";  // In production, get from NTP server
+    String today = "2025-01-09";  // TODO: Get from NTP server
     
     String path = "/daily_records/" + today;
     
-    // Increment cycles and revenue
     if (Firebase.RTDB.getJSON(&fbdo, path)) {
         FirebaseJson &json = fbdo.jsonObject();
-        FirebaseJsonData jsonData;
+        FirebaseJsonData data;
         
         int cycles = 0;
         int revenue = 0;
         
-        if (json.get(jsonData, "cycles")) {
-            cycles = jsonData.intValue;
-        }
-        if (json.get(jsonData, "revenue")) {
-            revenue = jsonData.intValue;
-        }
+        if (json.get(data, "cycles")) cycles = data.intValue;
+        if (json.get(data, "revenue")) revenue = data.intValue;
         
         cycles++;
-        revenue += 5;  // RM 5 per cycle
+        revenue += PRICE_PER_WASH;
         
         FirebaseJson updateJson;
         updateJson.set("cycles", cycles);
@@ -551,17 +509,14 @@ void recordTransaction() {
         
         Firebase.RTDB.setJSON(&fbdo, path, &updateJson);
         
-        Serial.println("Transaction recorded - Cycles: " + String(cycles) + ", Revenue: RM" + String(revenue));
+        Serial.println("💰 Transaction recorded - Cycles: " + String(cycles) + ", Revenue: RM" + String(revenue));
     } else {
         // First transaction of the day
         FirebaseJson updateJson;
         updateJson.set("cycles", 1);
-        updateJson.set("revenue", 5);
+        updateJson.set("revenue", PRICE_PER_WASH);
         
         Firebase.RTDB.setJSON(&fbdo, path, &updateJson);
-        
-        Serial.println("First transaction of the day recorded");
+        Serial.println("💰 First transaction of the day recorded");
     }
 }
-
-// ==================== END ====================
