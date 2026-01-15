@@ -9,7 +9,7 @@
       font-family: Arial, sans-serif;
       max-width: 900px;
       margin: 20px auto;
-      padding: 20px;
+      padding: 0 10px;
     }
     h2 {
       text-align: center;
@@ -59,7 +59,7 @@
   </table>
 
   <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwMotrQsv6uXvN6bmsF56KRWQ7gvNa0x4xnQ1GTXKQd-IgY_rSL39XDH0KK_QRUr4od/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby8ENfZTX6o9bPaNfutvfNa4ryUV2KWHXfx1FBhVKgAq5Hvx0ZXK5erbCgBheVyaitg/exec";
 
     async function muatRekod() {
       try {
@@ -70,7 +70,7 @@
         const table = document.getElementById('rekodTable');
 
         tbody.innerHTML = '';
-        if (rekod.length === 0) {
+        if (!Array.isArray(rekod) || rekod.length === 0) {
           loading.textContent = "Tiada rekod dijumpai.";
           return;
         }
