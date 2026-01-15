@@ -8,16 +8,31 @@
   <style>
     body { background: #f8f9fa; padding: 15px; }
     .card { border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    .table th { background-color: #edf2f7; }
+    .table th { background-color: #edf2f7; color: #1a3a6c; }
     .btn-pdf { background: #1a3a6c; border: none; }
+    .header-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .header-logo img {
+      height: 50px;
+      object-fit: contain;
+    }
+    .header-logo h2 {
+      margin: 0;
+      color: #1a3a6c;
+    }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="text-center mb-4">
+  <div class="header-logo">
+    <img src="logo-kv.png" alt="Logo KV Klang" onerror="this.src='https://via.placeholder.com/150x50/1a3a6c/white?text=KV+KLANG'">
     <h2>DASHBOARD REKOD</h2>
-    <p class="text-muted">Senarai rancangan pengajaran yang telah dijana</p>
   </div>
 
   <div class="card">
@@ -42,7 +57,8 @@
 </div>
 
 <script>
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxvScoAFT17d-0HXNQDDO-WtLB4hfVfCM5L-M___Sy_mvWvcye9i5c8azG4Hk-80HXb/exec";
+  // Gunakan Web App REKOD untuk ambil data
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyWBTYuiUlpLIcy_lqmcpKgJ91dUmBmSRG8DS-vnVZQFJzYUFb3g2_KPLleLUawFor-/exec";
 
   async function muatRekod() {
     try {
