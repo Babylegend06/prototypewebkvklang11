@@ -47,72 +47,79 @@
     <h1 class="title-main">RANCANGAN PENGAJARAN SVM</h1>
   </div>
 
-  <div class="card p-4">
+  <!-- Form POST ke Web App REKOD (PDF) -->
+  <form action="https://script.google.com/macros/s/AKfycbyWBTYuiUlpLIcy_lqmcpKgJ91dUmBmSRG8DS-vnVZQFJzYUFb3g2_KPLleLUawFor-/exec" method="POST" class="card p-4">
     <div class="row">
       <div class="col-12 col-md-6">
         <label class="form-label">NAMA PENGAJAR</label>
-        <select id="namaPengajar" class="form-select"><option>-- Pilih --</option></select>
+        <select name="namaPengajar" class="form-select" required>
+          <option value="">-- Pilih --</option>
+        </select>
         
         <label class="form-label">PROGRAM / UNIT</label>
-        <select id="program" class="form-select"><option>-- Pilih --</option></select>
+        <select name="program" class="form-select" required>
+          <option value="">-- Pilih --</option>
+        </select>
         
         <label class="form-label">KOD KURSUS</label>
-        <select id="kod" class="form-select"><option>-- Pilih --</option></select>
+        <select name="kod" class="form-select" required>
+          <option value="">-- Pilih --</option>
+        </select>
         
         <label class="form-label">KOMPETENSI / MODUL</label>
-        <textarea id="modul" class="form-control" rows="2" placeholder="Contoh: 3.1 Memahami ayat tunggal..."></textarea>
+        <textarea name="modul" class="form-control" rows="2" placeholder="Contoh: 3.1 Memahami ayat tunggal..."></textarea>
         
         <label class="form-label">TARIKH</label>
-        <input type="date" id="tarikh" class="form-control">
+        <input type="date" name="tarikh" class="form-control" required>
       </div>
       
       <div class="col-12 col-md-6">
         <label class="form-label">HARI</label>
-        <select id="hari" class="form-select"><option>-- Pilih --</option></select>
+        <select name="hari" class="form-select" required>
+          <option value="">-- Pilih --</option>
+        </select>
         
         <label class="form-label">MINGGU</label>
-        <select id="minggu" class="form-select"><option>-- Pilih --</option></select>
+        <select name="minggu" class="form-select" required>
+          <option value="">-- Pilih --</option>
+        </select>
         
         <label class="form-label">MASA (minit)</label>
-        <input type="number" id="masa" class="form-control" placeholder="60" min="1">
+        <input type="number" name="masa" class="form-control" placeholder="60" min="1" required>
         
         <label class="form-label">BILANGAN PELAJAR</label>
-        <input type="number" id="bilPelajar" class="form-control" placeholder="30" min="1">
+        <input type="number" name="bilPelajar" class="form-control" placeholder="30" min="1" required>
         
         <label class="form-label">STANDARD KANDUNGAN</label>
-        <textarea id="standardKandungan" class="form-control" rows="2" placeholder="Standard kandungan..."></textarea>
+        <textarea name="standardKandungan" class="form-control" rows="2" placeholder="Standard kandungan..."></textarea>
       </div>
       
       <div class="col-12 mt-3">
         <label class="form-label">OBJEKTIF PEMBELAJARAN</label>
-        <textarea id="objektif" class="form-control" rows="2" placeholder="Di akhir PdPc, murid boleh..."></textarea>
+        <textarea name="objektif" class="form-control" rows="2" placeholder="Di akhir PdPc, murid boleh..."></textarea>
         <label class="form-label">TUGASAN UTAMA / PROSES</label>
-        <textarea id="tugasan" class="form-control" rows="2"></textarea>
+        <textarea name="tugasan" class="form-control" rows="2"></textarea>
         <label class="form-label">BAHAN / SUMBER</label>
-        <textarea id="sumber" class="form-control" rows="2"></textarea>
+        <textarea name="sumber" class="form-control" rows="2"></textarea>
         <label class="form-label">REFLEKSI</label>
-        <textarea id="refleksi" class="form-control" rows="2"></textarea>
+        <textarea name="refleksi" class="form-control" rows="2"></textarea>
         <label class="form-label">INTERVENSI</label>
-        <textarea id="intervensi" class="form-control" rows="2"></textarea>
+        <textarea name="intervensi" class="form-control" rows="2"></textarea>
       </div>
     </div>
 
-    <button onclick="simpanPDF()" class="btn btn-save text-white w-100 mt-4">
+    <button type="submit" class="btn btn-save text-white w-100 mt-4">
       💾 Simpan PDF
     </button>
 
     <a href="dashboard.html" class="btn btn-dashboard w-100 mt-2">
       📊 Lihat Dashboard Rekod
     </a>
-  </div>
+  </form>
 </div>
 
 <script>
-  // Web App untuk dropdown (sheet BAHARU)
   const WEB_APP_DROPDOWN = "https://script.google.com/macros/s/AKfycbyH_W7Ttlrq9L9MyYxALOuBxy1rojtH28kwca-w40xWlxUUiBMN71PBYwJzRPudu9cG/exec";
-  
-  // Web App untuk PDF (sheet LAMA)
-  const WEB_APP_PDF = "https://script.google.com/macros/s/AKfycbz3W3fFRN8NVR9tEK7bWuF07Bxqc3on7sldLpaQFJZ23jFOXoi-4LkS-ZZuOtxGZya_/exec";
 
   async function muatDropdown() {
     try {
@@ -124,20 +131,13 @@
       isiSelect('kod', data.kod);
       isiSelect('hari', data.hari);
       isiSelect('minggu', data.minggu);
-
-      document.getElementById('kod').addEventListener('change', async () => {
-        const kod = document.getElementById('kod').value;
-        const res2 = await fetch(`${WEB_APP_DROPDOWN}?action=getModulByKod&kod=${encodeURIComponent(kod)}`);
-        const modulList = await res2.json();
-        // Biarkan sebagai textarea — guru boleh edit
-      });
     } catch (e) {
       console.error("Gagal muat dropdown:", e);
     }
   }
 
-  function isiSelect(id, list) {
-    const sel = document.getElementById(id);
+  function isiSelect(name, list) {
+    const sel = document.querySelector(`select[name="${name}"]`);
     sel.innerHTML = '<option value="">-- Sila Pilih --</option>';
     (list || []).forEach(item => {
       const opt = document.createElement('option');
@@ -145,49 +145,6 @@
       opt.textContent = item;
       sel.appendChild(opt);
     });
-  }
-
-  async function simpanPDF() {
-    const data = {
-      namaPengajar: document.getElementById('namaPengajar').value || '',
-      program: document.getElementById('program').value || '',
-      kod: document.getElementById('kod').value || '',
-      modul: document.getElementById('modul').value || '',
-      tarikh: document.getElementById('tarikh').value || '',
-      hari: document.getElementById('hari').value || '',
-      minggu: document.getElementById('minggu').value || '',
-      masa: document.getElementById('masa').value || '',
-      bilPelajar: document.getElementById('bilPelajar').value || '',
-      standardKandungan: document.getElementById('standardKandungan').value || '',
-      objektif: document.getElementById('objektif').value || '',
-      tugasan: document.getElementById('tugasan').value || '',
-      sumber: document.getElementById('sumber').value || '',
-      refleksi: document.getElementById('refleksi').value || '',
-      intervensi: document.getElementById('intervensi').value || ''
-    };
-
-    if (!data.namaPengajar.trim()) {
-      alert("⚠️ Sila pilih Nama Pengajar.");
-      return;
-    }
-
-    try {
-      const res = await fetch(WEB_APP_PDF, {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const result = await res.json();
-
-      if (result.success) {
-        alert("✅ PDF berjaya dijana!");
-        window.open(result.url, '_blank');
-      } else {
-        alert("❌ Ralat: " + (result.error || "Gagal menjana PDF."));
-      }
-    } catch (e) {
-      alert("⚠️ Gagal sambung ke server. Pastikan laman dihoskan di Vercel/Netlify.");
-    }
   }
 
   muatDropdown();
