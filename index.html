@@ -108,7 +108,10 @@
 </div>
 
 <script>
+  // Web App untuk dropdown (sheet BAHARU)
   const WEB_APP_DROPDOWN = "https://script.google.com/macros/s/AKfycbyH_W7Ttlrq9L9MyYxALOuBxy1rojtH28kwca-w40xWlxUUiBMN71PBYwJzRPudu9cG/exec";
+  
+  // Web App untuk PDF (sheet LAMA)
   const WEB_APP_PDF = "https://script.google.com/macros/s/AKfycbz3W3fFRN8NVR9tEK7bWuF07Bxqc3on7sldLpaQFJZ23jFOXoi-4LkS-ZZuOtxGZya_/exec";
 
   async function muatDropdown() {
@@ -126,7 +129,7 @@
         const kod = document.getElementById('kod').value;
         const res2 = await fetch(`${WEB_APP_DROPDOWN}?action=getModulByKod&kod=${encodeURIComponent(kod)}`);
         const modulList = await res2.json();
-        // Jika mahu auto-isi textarea, gantikan di sini
+        // Biarkan sebagai textarea — guru boleh edit
       });
     } catch (e) {
       console.error("Gagal muat dropdown:", e);
@@ -183,7 +186,7 @@
         alert("❌ Ralat: " + (result.error || "Gagal menjana PDF."));
       }
     } catch (e) {
-      alert("⚠️ Gagal sambung ke server. Pastikan laman dibuka melalui Netlify (bukan klik fail secara langsung).");
+      alert("⚠️ Gagal sambung ke server. Pastikan laman dihoskan di Vercel/Netlify.");
     }
   }
 
