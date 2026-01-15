@@ -6,181 +6,200 @@
   <title>Rancangan Pengajaran SVM</title>
   <style>
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: "Times New Roman", Times, serif;
+      font-size: 12pt;
       max-width: 800px;
       margin: 20px auto;
-      padding: 20px;
+      padding: 10px;
       background: #f9f9f9;
     }
-    h2 {
-      text-align: center;
-      color: #2c3e50;
-    }
-    label {
-      display: block;
-      margin-top: 16px;
-      font-weight: bold;
-      color: #34495e;
-    }
-    input, select, textarea {
+    table {
       width: 100%;
-      padding: 10px;
-      margin-top: 6px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      box-sizing: border-box;
+      border-collapse: collapse;
+      table-layout: fixed;
+      margin-bottom: 20px;
+    }
+    td {
+      border: 1px solid black;
+      padding: 6px 4px;
+      vertical-align: top;
+      height: 24px;
+    }
+    .label {
+      font-weight: bold;
+      white-space: nowrap;
+      width: 150px;
+    }
+    select, input, textarea {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: inherit;
+      padding: 2px;
+      outline: none;
+    }
+    textarea {
+      resize: none;
+      height: 60px;
     }
     button {
-      margin-top: 24px;
-      padding: 12px 24px;
+      display: block;
+      margin: 20px auto;
+      padding: 10px 20px;
       background: #27ae60;
       color: white;
       border: none;
-      border-radius: 4px;
-      cursor: pointer;
       font-size: 16px;
-      width: 100%;
+      cursor: pointer;
     }
-    button:hover {
-      background: #219653;
+    .signature {
+      margin-top: 20px;
+      font-style: italic;
     }
   </style>
 </head>
 <body>
-  <h2>📝 Rancangan Pengajaran (Lampiran 2b)</h2>
 
-  <label>Kod Kursus:</label>
-  <select id="kod" required></select>
+<div style="text-align: center; font-weight: bold; margin-bottom: 10px;">RANCANGAN PENGAJARAN</div>
 
-  <label>Program / Unit:</label>
-  <select id="program" required></select>
+<table>
+  <tr><td class="label">JABATAN</td><td>PENDIDIKAN UMUM</td></tr>
+  <tr><td class="label">PROGRAM / UNIT</td><td><select id="program"><option>-- Pilih --</option></select></td></tr>
+  <tr><td class="label">KOD & NAMA KURSUS / MATAPELAJARAN</td><td><select id="kod"><option>-- Pilih --</option></select></td></tr>
+  <tr><td class="label">KOMPETENSI / MODUL</td><td><select id="modul"><option>-- Pilih --</option></select></td></tr>
+  <tr>
+    <td class="label">TARIKH</td><td><input type="date" id="tarikh"></td>
+    <td class="label">MINGGU</td><td><select id="minggu"><option>--</option></select></td>
+    <td class="label">HARI</td><td><select id="hari"><option>--</option></select></td>
+    <td class="label">MASA</td><td><select id="masa"><option>--</option></select> minit</td>
+  </tr>
+  <tr><td class="label">BILANGAN PELAJAR</td><td><select id="bilPelajar"><option>--</option></select></td></tr>
+  <tr><td class="label">NAMA PENGAJAR</td><td><select id="namaPengajar"><option>--</option></select></td></tr>
+  <tr><td class="label">STANDARD KANDUNGAN</td><td><select id="standardKandungan"><option>--</option></select></td></tr>
+  <tr>
+    <td class="label">MASA</td>
+    <td colspan="4" style="font-weight:bold;">STANDARD PEMBELAJARAN / OBJEKTIF PEMBELAJARAN</td>
+    <td colspan="3" style="font-weight:bold;">TUGASAN UTAMA / PROSES</td>
+    <td colspan="2" style="font-weight:bold;">BAHAN / SUMBER PEMBELAJARAN</td>
+  </tr>
+  <tr>
+    <td><select id="masa2"><option>--</option></select> minit</td>
+    <td colspan="4">
+      Di akhir pengajaran dan pembelajaran, murid boleh:<br>
+      <textarea id="objektif"></textarea>
+    </td>
+    <td colspan="3"><textarea id="tugasan"></textarea></td>
+    <td colspan="2"><textarea id="sumber"></textarea></td>
+  </tr>
+  <tr><td class="label">REFLEKSI</td><td colspan="10"><textarea id="refleksi"></textarea></td></tr>
+  <tr><td class="label">INTERVENSI</td><td colspan="10"><textarea id="intervensi"></textarea></td></tr>
+</table>
 
-  <label>Kompetensi / Modul:</label>
-  <select id="modul" required></select>
+<div class="signature">
+  Tandatangan Pensyarah: .................................<br>
+  Tandatangan Ketua Jabatan / Program / Unit: ........................................<br>
+  (<span id="namaDisplay">[Nama Pengajar]</span>)<br>
+  Pensyarah Unit <span id="programDisplay">[Program]</span>
+</div>
 
-  <label>Tarikh:</label>
-  <input type="date" id="tarikh" required>
+<button onclick="janaPDF()">✅ Jana PDF</button>
 
-  <label>Hari:</label>
-  <select id="hari" required></select>
+<script>
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby8ENfZTX6o9bPaNfutvfNa4ryUV2KWHXfx1FBhVKgAq5Hvx0ZXK5erbCgBheVyaitg/exec";
 
-  <label>Minggu:</label>
-  <select id="minggu" required></select>
+  async function muatDropdown() {
+    try {
+      const res = await fetch(`${WEB_APP_URL}?action=getDropdownData`);
+      const data = await res.json();
 
-  <label>Masa (minit):</label>
-  <select id="masa" required></select>
+      isiSelect('program', data.program);
+      isiSelect('kod', data.kod);
+      isiSelect('hari', data.hari);
+      isiSelect('minggu', data.minggu);
+      isiSelect('masa', data.masa);
+      isiSelect('bilPelajar', data.bilPelajar);
+      isiSelect('namaPengajar', data.namaPengajar);
+      isiSelect('standardKandungan', data.standardKandungan);
+      document.getElementById('masa2').innerHTML = document.getElementById('masa').innerHTML;
 
-  <label>Bilangan Pelajar:</label>
-  <select id="bilPelajar" required></select>
-
-  <label>Nama Pengajar:</label>
-  <select id="namaPengajar" required></select>
-
-  <label>Standard Kandungan:</label>
-  <select id="standardKandungan" required></select>
-
-  <label>Objektif Pembelajaran:</label>
-  <textarea id="objektif" rows="3" placeholder="Di akhir PdPc, murid boleh..."></textarea>
-
-  <label>Tugasan Utama / Proses:</label>
-  <textarea id="tugasan" rows="3"></textarea>
-
-  <label>Sumber Pembelajaran:</label>
-  <textarea id="sumber" rows="2"></textarea>
-
-  <label>Refleksi:</label>
-  <textarea id="refleksi" rows="2"></textarea>
-
-  <label>Intervensi:</label>
-  <textarea id="intervensi" rows="2"></textarea>
-
-  <button onclick="janaPDF()">✅ Jana PDF</button>
-
-  <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwMotrQsv6uXvN6bmsF56KRWQ7gvNa0x4xnQ1GTXKQd-IgY_rSL39XDH0KK_QRUr4od/exec";
-
-    async function muatDropdown() {
-      try {
-        const res = await fetch(`${WEB_APP_URL}?action=getDropdownData`);
-        const data = await res.json();
-
-        isiSelect('kod', data.kod);
-        isiSelect('program', data.program);
-        isiSelect('hari', data.hari);
-        isiSelect('minggu', data.minggu);
-        isiSelect('masa', data.masa);
-        isiSelect('bilPelajar', data.bilPelajar);
-        isiSelect('namaPengajar', data.namaPengajar);
-        isiSelect('standardKandungan', data.standardKandungan);
-
-        // Isi modul bila kod berubah
-        document.getElementById('kod').addEventListener('change', async () => {
-          const kod = document.getElementById('kod').value;
-          if (!kod) return;
-          const res2 = await fetch(`${WEB_APP_URL}?action=getModulByKod&kod=${encodeURIComponent(kod)}`);
-          const modulList = await res2.json();
-          isiSelect('modul', modulList);
-        });
-      } catch (e) {
-        alert("Gagal muat data dropdown: " + e.message);
-      }
-    }
-
-    function isiSelect(id, list) {
-      const sel = document.getElementById(id);
-      sel.innerHTML = '<option value="">-- Sila Pilih --</option>';
-      list.forEach(item => {
-        const opt = document.createElement('option');
-        opt.value = item;
-        opt.textContent = item;
-        sel.appendChild(opt);
+      // Sync nama & program ke tandatangan
+      document.getElementById('namaPengajar').addEventListener('change', e => {
+        document.getElementById('namaDisplay').textContent = e.target.value || '[Nama Pengajar]';
       });
+      document.getElementById('program').addEventListener('change', e => {
+        document.getElementById('programDisplay').textContent = e.target.value || '[Program]';
+      });
+
+      // Isi modul bila kod berubah
+      document.getElementById('kod').addEventListener('change', async () => {
+        const kod = document.getElementById('kod').value;
+        const res2 = await fetch(`${WEB_APP_URL}?action=getModulByKod&kod=${encodeURIComponent(kod)}`);
+        const modulList = await res2.json();
+        isiSelect('modul', modulList);
+      });
+
+    } catch (e) {
+      alert("Gagal muat data dropdown: " + e.message);
+    }
+  }
+
+  function isiSelect(id, list) {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '<option value="">-- Pilih --</option>';
+    (list || []).forEach(item => {
+      const opt = document.createElement('option');
+      opt.value = item;
+      opt.textContent = item;
+      sel.appendChild(opt);
+    });
+  }
+
+  async function janaPDF() {
+    const data = {
+      program: document.getElementById('program').value,
+      kod: document.getElementById('kod').value,
+      modul: document.getElementById('modul').value,
+      tarikh: document.getElementById('tarikh').value,
+      hari: document.getElementById('hari').value,
+      minggu: document.getElementById('minggu').value,
+      masa: document.getElementById('masa').value,
+      bilPelajar: document.getElementById('bilPelajar').value,
+      namaPengajar: document.getElementById('namaPengajar').value,
+      standardKandungan: document.getElementById('standardKandungan').value,
+      objektif: document.getElementById('objektif').value,
+      tugasan: document.getElementById('tugasan').value,
+      sumber: document.getElementById('sumber').value,
+      refleksi: document.getElementById('refleksi').value,
+      intervensi: document.getElementById('intervensi').value
+    };
+
+    if (!data.namaPengajar || !data.kod || !data.tarikh) {
+      alert("Sila isi medan wajib!");
+      return;
     }
 
-    async function janaPDF() {
-      const data = {
-        kod: document.getElementById('kod').value,
-        program: document.getElementById('program').value,
-        modul: document.getElementById('modul').value,
-        tarikh: document.getElementById('tarikh').value,
-        hari: document.getElementById('hari').value,
-        minggu: document.getElementById('minggu').value,
-        masa: document.getElementById('masa').value,
-        bilPelajar: document.getElementById('bilPelajar').value,
-        namaPengajar: document.getElementById('namaPengajar').value,
-        standardKandungan: document.getElementById('standardKandungan').value,
-        objektif: document.getElementById('objektif').value,
-        tugasan: document.getElementById('tugasan').value,
-        sumber: document.getElementById('sumber').value,
-        refleksi: document.getElementById('refleksi').value,
-        intervensi: document.getElementById('intervensi').value
-      };
+    try {
+      const res = await fetch(WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const result = await res.json();
 
-      if (!data.kod || !data.program || !data.namaPengajar || !data.tarikh) {
-        alert("Sila isi medan wajib!");
-        return;
+      if (result.success) {
+        alert("✅ PDF berjaya dijana!\nFail disimpan ke Google Drive.");
+        window.open(result.url, '_blank');
+      } else {
+        alert("❌ Ralat:\n" + result.error);
       }
-
-      try {
-        const res = await fetch(WEB_APP_URL, {
-          method: 'POST',
-          body: JSON.stringify(data),
-          headers: { 'Content-Type': 'application/json' }
-        });
-        const result = await res.json();
-        
-        if (result.success) {
-          alert("✅ PDF berjaya dijana!\nFail disimpan ke Google Drive.");
-          window.open(result.url, '_blank');
-        } else {
-          alert("❌ Ralat:\n" + result.error);
-        }
-      } catch (e) {
-        alert("⚠️ Gagal sambung ke server:\n" + e.message);
-      }
+    } catch (e) {
+      alert("⚠️ Gagal sambung ke server:\n" + e.message);
     }
+  }
 
-    muatDropdown();
-  </script>
+  muatDropdown();
+</script>
+
 </body>
 </html>
