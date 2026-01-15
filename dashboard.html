@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard – Rancangan Pengajaran</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background: #f8f9fa; padding: 15px; }
+    .card { border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .table th { background-color: #edf2f7; }
+    .btn-pdf { background: #1a3a6c; border: none; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="text-center mb-4">
+    <h2>DASHBOARD REKOD</h2>
+    <p class="text-muted">Senarai rancangan pengajaran yang telah dijana</p>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>Tarikh Hantar</th>
+              <th>Nama Pengajar</th>
+              <th>Kod Kursus</th>
+              <th class="text-center">PDF</th>
+            </tr>
+          </thead>
+          <tbody id="rekodBody">
+            <tr><td colspan="4" class="text-center">Memuatkan rekod...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxvScoAFT17d-0HXNQDDO-WtLB4hfVfCM5L-M___Sy_mvWvcye9i5c8azG4Hk-80HXb/exec";
+
+  async function muatRekod() {
+    try {
+      const res = await fetch(`${WEB_APP_URL}?action=getRekod`);
+      const rekod = await res.json();
+      const tbody = document.getElementById('rekodBody');
+
+      if (!Array.isArray(rekod) || rekod.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">Tiada rekod dijumpai.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rekod.map(r => `
+        <tr>
+          <td>${r.tarikh}</td>
+          <td>${r.namaPengajar}</td>
+          <td>${r.kodKursus}</td>
+          <td class="text-center">
+            <a href="${r.url}" target="_blank" class="btn btn-pdf text-white btn-sm">📄 Muat Turun</a>
+          </td>
+        </tr>
+      `).join('');
+    } catch (e) {
+      document.getElementById('rekodBody').innerHTML = 
+        `<tr><td colspan="4" class="text-center text-danger">Gagal muat rekod.</td></tr>`;
+    }
+  }
+
+  muatRekod();
+</script>
+
+</body>
+</html>
