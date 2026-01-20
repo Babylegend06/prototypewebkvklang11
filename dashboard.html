@@ -12,6 +12,18 @@
       padding: 16px;
       font-family: 'Segoe UI', system-ui, sans-serif;
     }
+    .back-arrow {
+      background: #1a3a6c;
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      margin-bottom: 20px;
+    }
     .header {
       display: flex;
       align-items: center;
@@ -34,11 +46,6 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
       padding: 16px;
       margin-bottom: 16px;
-      transition: transform 0.2s;
-    }
-    .transaction-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
     }
     .transaction-header {
       display: flex;
@@ -54,17 +61,6 @@
     .transaction-date {
       font-size: 13px;
       color: #6c757d;
-    }
-    .transaction-details {
-      display: flex;
-      justify-content: space-between;
-      font-size: 14px;
-      color: #495057;
-      margin: 8px 0;
-    }
-    .transaction-id {
-      font-weight: 500;
-      color: #1a3a6c;
     }
     .btn-pdf {
       background: #1a3a6c;
@@ -91,13 +87,17 @@
 <body>
 
 <div class="container-fluid">
+  <a href="index.html" class="back-arrow">
+    <i class="fas fa-arrow-left"></i>
+  </a>
+
   <div class="header">
     <img src="logo-kv.png" alt="Logo KV Klang" class="logo-kv" onerror="this.src='https://via.placeholder.com/150x50/1a3a6c/white?text=KV+KLANG'">
     <h1>Sejarah Rancangan Pengajaran</h1>
   </div>
 
   <div id="transactionsContainer">
-    <!-- Rekod akan dimuat di sini -->
+    <div class="text-center">Memuatkan rekod...</div>
   </div>
 </div>
 
@@ -121,7 +121,6 @@
         return;
       }
 
-      // Susun dari terbaru ke terlama
       rekod.sort((a, b) => {
         const dateA = new Date(a.tarikh.split(' ')[0].split('/').reverse().join('-'));
         const dateB = new Date(b.tarikh.split(' ')[0].split('/').reverse().join('-'));
@@ -136,7 +135,6 @@
           </div>
           <div class="transaction-details">
             <span><i class="fas fa-user me-1"></i> ${r.namaPengajar}</span>
-            <span class="transaction-id">#${r.kodKursus.replace(/\D/g, '').slice(0,6) || 'XXXXXX'}</span>
           </div>
           <a href="${r.url}" target="_blank" class="btn-pdf text-white mt-2">
             <i class="fas fa-file-pdf"></i> Muat Turun PDF
@@ -148,7 +146,7 @@
         <div class="empty-state">
           <i class="fas fa-exclamation-triangle"></i>
           <h3>Ralat Memuatkan Data</h3>
-          <p>Tidak dapat menyambung ke pelayan. Cuba lagi nanti.</p>
+          <p>Tidak dapat menyambung ke pelayan.</p>
         </div>
       `;
     }
