@@ -10,33 +10,11 @@
     .card { border-radius: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
     .form-label { font-weight: 600; margin-top: 18px; color: #1a3a6c; }
     .btn-save { background: #1a3a6c; border: none; }
-    .header-section {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    .logo-kv {
-      height: 80px;
-      object-fit: contain;
-    }
-    .title-main {
-      font-size: 28px;
-      font-weight: 700;
-      color: #1a3a6c;
-      text-align: center;
-      letter-spacing: 0.5px;
-    }
-    .btn-dashboard {
-      background: #ffcc00;
-      color: #1a3a6c;
-      font-weight: 600;
-      border: none;
-      border-radius: 10px;
-      padding: 10px;
-      margin-top: 10px;
-    }
+    .btn-preview { background: #6c757d; border: none; }
+    .btn-dashboard { background: #ffcc00; color: #1a3a6c; font-weight: 600; border: none; border-radius: 10px; padding: 10px; margin-top: 10px; }
+    .header-section { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 24px; }
+    .logo-kv { height: 80px; object-fit: contain; }
+    .title-main { font-size: 28px; font-weight: 700; color: #1a3a6c; text-align: center; letter-spacing: 0.5px; }
   </style>
 </head>
 <body>
@@ -47,8 +25,7 @@
     <h1 class="title-main">RANCANGAN PENGAJARAN SVM</h1>
   </div>
 
-  <!-- Form POST ke Web App REKOD (PDF) -->
-  <form action="https://script.google.com/macros/s/AKfycbyWBTYuiUlpLIcy_lqmcpKgJ91dUmBmSRG8DS-vnVZQFJzYUFb3g2_KPLleLUawFor-/exec" method="POST" class="card p-4">
+  <form id="pengajaranForm" action="https://script.google.com/macros/s/AKfycbyWBTYuiUlpLIcy_lqmcpKgJ91dUmBmSRG8DS-vnVZQFJzYUFb3g2_KPLleLUawFor-/exec" method="POST" class="card p-4">
     <div class="row">
       <div class="col-12 col-md-6">
         <label class="form-label">NAMA PENGAJAR</label>
@@ -84,8 +61,9 @@
           <option value="">-- Pilih --</option>
         </select>
         
-        <label class="form-label">MASA (minit)</label>
-        <input type="number" name="masa" class="form-control" placeholder="60" min="1" required>
+        <!-- JAM -->
+        <label class="form-label">MASA (jam)</label>
+        <input type="number" name="masa" class="form-control" placeholder="1.5" step="0.5" min="0.5" required>
         
         <label class="form-label">BILANGAN PELAJAR</label>
         <input type="number" name="bilPelajar" class="form-control" placeholder="30" min="1" required>
@@ -108,8 +86,12 @@
       </div>
     </div>
 
-    <button type="submit" class="btn btn-save text-white w-100 mt-4">
-      💾 Simpan PDF
+    <button type="button" class="btn btn-preview text-white w-100 mt-3" onclick="previewData()">
+      👁️ Preview Sebelum Simpan
+    </button>
+
+    <button type="submit" class="btn btn-save text-white w-100 mt-3">
+      💾 Simpan & Terus ke Dashboard
     </button>
 
     <a href="dashboard.html" class="btn btn-dashboard w-100 mt-2">
@@ -118,6 +100,25 @@
   </form>
 </div>
 
+<!-- Modal Preview -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Preview Rancangan Pengajaran</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="previewContent">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('pengajaranForm').submit()">Sahkan & Simpan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   const WEB_APP_DROPDOWN = "https://script.google.com/macros/s/AKfycbyH_W7Ttlrq9L9MyYxALOuBxy1rojtH28kwca-w40xWlxUUiBMN71PBYwJzRPudu9cG/exec";
 
@@ -125,7 +126,6 @@
     try {
       const res = await fetch(`${WEB_APP_DROPDOWN}?action=getDropdownData`);
       const data = await res.json();
-
       isiSelect('namaPengajar', data.namaPengajar);
       isiSelect('program', data.program);
       isiSelect('kod', data.kod);
@@ -145,6 +145,52 @@
       opt.textContent = item;
       sel.appendChild(opt);
     });
+  }
+
+  function previewData() {
+    const formData = new FormData(document.getElementById('pengajaranForm'));
+    const data = {};
+    for (let [key, value] of formData.entries()) {
+      data[key] = value;
+    }
+
+    // Format tarikh: yyyy-mm-dd → dd/MM/yyyy
+    let tarikhFormat = '-';
+    if (data.tarikh) {
+      const d = new Date(data.tarikh);
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      tarikhFormat = `${dd}/${mm}/${yyyy}`;
+    }
+
+    // Tukar jam ke minit untuk preview
+    let masaMinit = '-';
+    if (data.masa) {
+      const jam = parseFloat(data.masa);
+      if (!isNaN(jam)) {
+        masaMinit = Math.round(jam * 60) + ' minit';
+      }
+    }
+
+    const content = `
+      <div class="row">
+        <div class="col-6"><strong>Nama Pengajar:</strong></div><div class="col-6">${data.namaPengajar || '-'}</div>
+        <div class="col-6"><strong>Program:</strong></div><div class="col-6">${data.program || '-'}</div>
+        <div class="col-6"><strong>Kod Kursus:</strong></div><div class="col-6">${data.kod || '-'}</div>
+        <div class="col-6"><strong>Tarikh:</strong></div><div class="col-6">${tarikhFormat}</div>
+        <div class="col-6"><strong>Hari:</strong></div><div class="col-6">${data.hari || '-'}</div>
+        <div class="col-6"><strong>Masa:</strong></div><div class="col-6">${masaMinit}</div>
+        <div class="col-6"><strong>Bil Pelajar:</strong></div><div class="col-6">${data.bilPelajar || '-'}</div>
+      </div>
+      <hr>
+      <div><strong>Modul:</strong> ${data.modul || '-'}</div>
+      <div><strong>Standard Kandungan:</strong> ${data.standardKandungan || '-'}</div>
+      <div><strong>Objektif:</strong> ${data.objektif || '-'}</div>
+    `;
+    document.getElementById('previewContent').innerHTML = content;
+    const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+    modal.show();
   }
 
   muatDropdown();
