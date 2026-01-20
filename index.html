@@ -15,9 +15,20 @@
     .header-section { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 24px; }
     .logo-kv { height: 80px; object-fit: contain; }
     .title-main { font-size: 28px; font-weight: 700; color: #1a3a6c; text-align: center; letter-spacing: 0.5px; }
+    .alert-custom {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
   </style>
 </head>
 <body>
+
+<!-- Notifikasi -->
+<div id="notif" class="alert alert-success alert-custom">Saved successfully!</div>
 
 <div class="container">
   <div class="header-section">
@@ -61,7 +72,6 @@
           <option value="">-- Pilih --</option>
         </select>
         
-        <!-- MASA SEBAGAI DROPDOWN -->
         <label class="form-label">MASA</label>
         <select name="masa" class="form-select" required>
           <option value="">-- Pilih --</option>
@@ -75,7 +85,7 @@
       </div>
       
       <div class="col-12 mt-3">
-        <label class="form-label">STANDARD PEMBELAJARAN</label>
+        <label class="form-label">OBJEKTIF PEMBELAJARAN</label>
         <textarea name="objektif" class="form-control" rows="2" placeholder="Di akhir PdPc, murid boleh..."></textarea>
         <label class="form-label">TUGASAN UTAMA / PROSES</label>
         <textarea name="tugasan" class="form-control" rows="2"></textarea>
@@ -92,7 +102,8 @@
       Preview Sebelum Simpan
     </button>
 
-    <button type="submit" class="btn btn-save text-white w-100 mt-3">
+    <!-- ✅ Simpan TERUS tanpa preview -->
+    <button type="submit" class="btn btn-save text-white w-100 mt-3" onclick="return handleSubmit(event)">
       Simpan & Terus ke Dashboard
     </button>
 
@@ -111,11 +122,10 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body" id="previewContent">
-        <!-- Preview akan dimuat di sini -->
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-        <button type="button" class="btn btn-primary" onclick="document.getElementById('pengajaranForm').submit()">Sahkan & Simpan</button>
+        <button type="button" class="btn btn-primary" onclick="submitFromPreview()">Sahkan & Simpan</button>
       </div>
     </div>
   </div>
@@ -123,20 +133,18 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // 🔥 HANYA BARIS INI DIUBAH — GUNAKAN WEB APP A BAHARU
   const WEB_APP_DROPDOWN = "https://script.google.com/macros/s/AKfycbzTFynm_SYpX-RNMG9MpkRSOXam-js72ZxVU0u5AUUDQDGfz3h5ToPoyQqj2oN-M3IK/exec";
 
   async function muatDropdown() {
     try {
       const res = await fetch(`${WEB_APP_DROPDOWN}?action=getDropdownData`);
       const data = await res.json();
-
       isiSelect('namaPengajar', data.namaPengajar);
       isiSelect('program', data.program);
       isiSelect('kod', data.kod);
       isiSelect('hari', data.hari);
       isiSelect('minggu', data.minggu);
-      isiSelect('masa', data.masa); // ✅ Tambah masa sebagai dropdown
+      isiSelect('masa', data.masa);
     } catch (e) {
       console.error("Gagal muat dropdown:", e);
     }
@@ -160,14 +168,13 @@
       data[key] = value;
     }
 
-    // Format tarikh: yyyy-mm-dd → dd/MM/yyyy
     let tarikhFormat = '-';
     if (data.tarikh) {
       const d = new Date(data.tarikh);
-      const dd = String(d.getDate()).padStart(2, '0');
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = d.getDate();
+      const m = d.getMonth() + 1;
       const yyyy = d.getFullYear();
-      tarikhFormat = `${dd}/${mm}/${yyyy}`;
+      tarikhFormat = `${dd}.${m}.${yyyy}`;
     }
 
     const content = `
@@ -188,6 +195,49 @@
     document.getElementById('previewContent').innerHTML = content;
     const modal = new bootstrap.Modal(document.getElementById('previewModal'));
     modal.show();
+  }
+
+  function submitFromPreview() {
+    // Tutup modal & hantar borang
+    bootstrap.Modal.getInstance(document.getElementById('previewModal')).hide();
+    document.getElementById('pengajaranForm').submit();
+  }
+
+  function showNotification() {
+    const notif = document.getElementById('notif');
+    notif.style.opacity = '1';
+    setTimeout(() => {
+      notif.style.opacity = '0';
+    }, 3000);
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    
+    const form = document.getElementById('pengajaranForm');
+    const formData = new FormData(form);
+    
+    // Hantar melalui fetch untuk dapat respons
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        body: new URLSearchParams(formData)
+      });
+
+      if (response.ok) {
+        showNotification();
+        form.reset(); // Kosongkan semua medan
+        
+        // Redirect ke dashboard selepas 1 saat
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 1000);
+      } else {
+        alert('Failed to save.');
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
   }
 
   muatDropdown();
