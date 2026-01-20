@@ -108,8 +108,11 @@
 </div>
 
 <script>
+  // 🔥 Web App A (Dropdown)
   const WEB_APP_DROPDOWN = "https://script.google.com/macros/s/AKfycbzTFynm_SYpX-RNMG9MpkRSOXam-js72ZxVU0u5AUUDQDGfz3h5ToPoyQqj2oN-M3IK/exec";
-  const WEB_APP_SAVE = "https://script.google.com/macros/s/AKfycbyWBTYuiUlpLIcy_lqmcpKgJ91dUmBmSRG8DS-vnVZQFJzYUFb3g2_KPLleLUawFor-/exec";
+  
+  // 🔥 Web App B (Simpan) - GUNAKAN URL BAHARU ANDA
+  const WEB_APP_SAVE = "https://script.google.com/macros/s/AKfycbwcf_hL7-8tCHgHkAHZOjHnhDAczPOpcdiKYOpd3NLtRX8oZXWyeKQSNT4JqwtBWJuR/exec";
 
   async function muatDropdown() {
     try {
@@ -147,7 +150,6 @@
     const form = document.getElementById('pengajaranForm');
     const formData = new FormData(form);
     
-    // Tukar ke URLSearchParams untuk POST biasa
     const params = new URLSearchParams();
     for (let [key, value] of formData.entries()) {
       params.append(key, value);
@@ -162,7 +164,7 @@
 
       if (res.ok) {
         showNotif();
-        form.reset(); // Kosongkan borang
+        form.reset();
         setTimeout(() => window.location.href = 'dashboard.html', 1000);
       } else {
         alert('Ralat: Gagal simpan.');
