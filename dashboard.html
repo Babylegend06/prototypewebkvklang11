@@ -102,7 +102,8 @@
 </div>
 
 <script>
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyWBTYuiUlpLIcy_lqmcpKgJ91dUmBmSRG8DS-vnVZQFJzYUFb3g2_KPLleLUawFor-/exec";
+  // 🔥 GUNAKAN WEB APP B BAHARU ANDA
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwTkCq2GXOr8OOxEMGffQFn7E2i93oVPekENbqDIAdEn1yETz_ohDcpeMzpmO7IINJq/exec";
 
   async function muatRekod() {
     try {
@@ -121,12 +122,7 @@
         return;
       }
 
-      rekod.sort((a, b) => {
-        const dateA = new Date(a.tarikh.split(' ')[0].split('/').reverse().join('-'));
-        const dateB = new Date(b.tarikh.split(' ')[0].split('/').reverse().join('-'));
-        return dateB - dateA;
-      });
-
+      // ✅ Rekod sudah disusun dari terbaru ke terlama oleh Apps Script
       container.innerHTML = rekod.map(r => `
         <div class="transaction-card">
           <div class="transaction-header">
@@ -146,9 +142,10 @@
         <div class="empty-state">
           <i class="fas fa-exclamation-triangle"></i>
           <h3>Ralat Memuatkan Data</h3>
-          <p>Tidak dapat menyambung ke pelayan.</p>
+          <p>Tidak dapat menyambung ke pelayan. Cuba lagi nanti.</p>
         </div>
       `;
+      console.error("Error:", e);
     }
   }
 
