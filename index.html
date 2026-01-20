@@ -10,7 +10,6 @@
     .card { border-radius: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
     .form-label { font-weight: 600; margin-top: 18px; color: #1a3a6c; }
     .btn-save { background: #1a3a6c; border: none; }
-    .btn-preview { background: #6c757d; border: none; }
     .btn-dashboard { background: #ffcc00; color: #1a3a6c; font-weight: 600; border: none; border-radius: 10px; padding: 10px; margin-top: 10px; }
     .header-section { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 24px; }
     .logo-kv { height: 80px; object-fit: contain; }
@@ -27,7 +26,6 @@
 </head>
 <body>
 
-<!-- Notifikasi -->
 <div id="notif" class="alert alert-success alert-custom">Saved successfully!</div>
 
 <div class="container">
@@ -36,7 +34,7 @@
     <h1 class="title-main">RANCANGAN PENGAJARAN SVM & DVM</h1>
   </div>
 
-  <form id="pengajaranForm" action="https://script.google.com/macros/s/AKfycbyWBTYuiUlpLIcy_lqmcpKgJ91dUmBmSRG8DS-vnVZQFJzYUFb3g2_KPLleLUawFor-/exec" method="POST" class="card p-4">
+  <form id="pengajaranForm" class="card p-4">
     <div class="row">
       <div class="col-12 col-md-6">
         <label class="form-label">NAMA PENGAJAR</label>
@@ -72,6 +70,7 @@
           <option value="">-- Pilih --</option>
         </select>
         
+        <!-- ✅ DROPDOWN MASA -->
         <label class="form-label">MASA</label>
         <select name="masa" class="form-select" required>
           <option value="">-- Pilih --</option>
@@ -98,12 +97,7 @@
       </div>
     </div>
 
-    <button type="button" class="btn btn-preview text-white w-100 mt-3" onclick="previewData()">
-      Preview Sebelum Simpan
-    </button>
-
-    <!-- ✅ Simpan TERUS tanpa preview -->
-    <button type="submit" class="btn btn-save text-white w-100 mt-3" onclick="return handleSubmit(event)">
+    <button type="button" class="btn btn-save text-white w-100 mt-3" onclick="simpanData()">
       Simpan & Terus ke Dashboard
     </button>
 
@@ -113,27 +107,9 @@
   </form>
 </div>
 
-<!-- Modal Preview -->
-<div class="modal fade" id="previewModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Preview Rancangan Pengajaran</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body" id="previewContent">
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-        <button type="button" class="btn btn-primary" onclick="submitFromPreview()">Sahkan & Simpan</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   const WEB_APP_DROPDOWN = "https://script.google.com/macros/s/AKfycbzTFynm_SYpX-RNMG9MpkRSOXam-js72ZxVU0u5AUUDQDGfz3h5ToPoyQqj2oN-M3IK/exec";
+  const WEB_APP_SAVE = "https://script.google.com/macros/s/AKfycbyWBTYuiUlpLIcy_lqmcpKgJ91dUmBmSRG8DS-vnVZQFJzYUFb3g2_KPLleLUawFor-/exec";
 
   async function muatDropdown() {
     try {
@@ -161,82 +137,38 @@
     });
   }
 
-  function previewData() {
-    const formData = new FormData(document.getElementById('pengajaranForm'));
-    const data = {};
-    for (let [key, value] of formData.entries()) {
-      data[key] = value;
-    }
-
-    let tarikhFormat = '-';
-    if (data.tarikh) {
-      const d = new Date(data.tarikh);
-      const dd = d.getDate();
-      const m = d.getMonth() + 1;
-      const yyyy = d.getFullYear();
-      tarikhFormat = `${dd}.${m}.${yyyy}`;
-    }
-
-    const content = `
-      <div class="row">
-        <div class="col-6"><strong>Nama Pengajar:</strong></div><div class="col-6">${data.namaPengajar || '-'}</div>
-        <div class="col-6"><strong>Program:</strong></div><div class="col-6">${data.program || '-'}</div>
-        <div class="col-6"><strong>Kod Kursus:</strong></div><div class="col-6">${data.kod || '-'}</div>
-        <div class="col-6"><strong>Tarikh:</strong></div><div class="col-6">${tarikhFormat}</div>
-        <div class="col-6"><strong>Hari:</strong></div><div class="col-6">${data.hari || '-'}</div>
-        <div class="col-6"><strong>Masa:</strong></div><div class="col-6">${data.masa || '-'}</div>
-        <div class="col-6"><strong>Bil Pelajar:</strong></div><div class="col-6">${data.bilPelajar || '-'}</div>
-      </div>
-      <hr>
-      <div><strong>Modul:</strong> ${data.modul || '-'}</div>
-      <div><strong>Standard Kandungan:</strong> ${data.standardKandungan || '-'}</div>
-      <div><strong>Objektif:</strong> ${data.objektif || '-'}</div>
-    `;
-    document.getElementById('previewContent').innerHTML = content;
-    const modal = new bootstrap.Modal(document.getElementById('previewModal'));
-    modal.show();
-  }
-
-  function submitFromPreview() {
-    // Tutup modal & hantar borang
-    bootstrap.Modal.getInstance(document.getElementById('previewModal')).hide();
-    document.getElementById('pengajaranForm').submit();
-  }
-
-  function showNotification() {
+  function showNotif() {
     const notif = document.getElementById('notif');
     notif.style.opacity = '1';
-    setTimeout(() => {
-      notif.style.opacity = '0';
-    }, 3000);
+    setTimeout(() => notif.style.opacity = '0', 3000);
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
-    
+  async function simpanData() {
     const form = document.getElementById('pengajaranForm');
     const formData = new FormData(form);
     
-    // Hantar melalui fetch untuk dapat respons
+    // Tukar ke URLSearchParams untuk POST biasa
+    const params = new URLSearchParams();
+    for (let [key, value] of formData.entries()) {
+      params.append(key, value);
+    }
+
     try {
-      const response = await fetch(form.action, {
+      const res = await fetch(WEB_APP_SAVE, {
         method: 'POST',
-        body: new URLSearchParams(formData)
+        body: params,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
       });
 
-      if (response.ok) {
-        showNotification();
-        form.reset(); // Kosongkan semua medan
-        
-        // Redirect ke dashboard selepas 1 saat
-        setTimeout(() => {
-          window.location.href = 'dashboard.html';
-        }, 1000);
+      if (res.ok) {
+        showNotif();
+        form.reset(); // Kosongkan borang
+        setTimeout(() => window.location.href = 'dashboard.html', 1000);
       } else {
-        alert('Failed to save.');
+        alert('Ralat: Gagal simpan.');
       }
     } catch (e) {
-      alert('Error: ' + e.message);
+      alert('Ralat sambungan: ' + e.message);
     }
   }
 
