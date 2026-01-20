@@ -61,9 +61,11 @@
           <option value="">-- Pilih --</option>
         </select>
         
-        <!-- JAM -->
-        <label class="form-label">MASA (jam)</label>
-        <input type="number" name="masa" class="form-control" placeholder="1.5" step="0.5" min="0.5" required>
+        <!-- MASA SEBAGAI DROPDOWN -->
+        <label class="form-label">MASA</label>
+        <select name="masa" class="form-select" required>
+          <option value="">-- Pilih --</option>
+        </select>
         
         <label class="form-label">BILANGAN PELAJAR</label>
         <input type="number" name="bilPelajar" class="form-control" placeholder="30" min="1" required>
@@ -109,6 +111,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body" id="previewContent">
+        <!-- Preview akan dimuat di sini -->
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
@@ -126,11 +129,13 @@
     try {
       const res = await fetch(`${WEB_APP_DROPDOWN}?action=getDropdownData`);
       const data = await res.json();
+
       isiSelect('namaPengajar', data.namaPengajar);
       isiSelect('program', data.program);
       isiSelect('kod', data.kod);
       isiSelect('hari', data.hari);
       isiSelect('minggu', data.minggu);
+      isiSelect('masa', data.masa); // ✅ Tambah masa sebagai dropdown
     } catch (e) {
       console.error("Gagal muat dropdown:", e);
     }
@@ -164,15 +169,6 @@
       tarikhFormat = `${dd}/${mm}/${yyyy}`;
     }
 
-    // Tukar jam ke minit untuk preview
-    let masaMinit = '-';
-    if (data.masa) {
-      const jam = parseFloat(data.masa);
-      if (!isNaN(jam)) {
-        masaMinit = Math.round(jam * 60) + ' minit';
-      }
-    }
-
     const content = `
       <div class="row">
         <div class="col-6"><strong>Nama Pengajar:</strong></div><div class="col-6">${data.namaPengajar || '-'}</div>
@@ -180,7 +176,7 @@
         <div class="col-6"><strong>Kod Kursus:</strong></div><div class="col-6">${data.kod || '-'}</div>
         <div class="col-6"><strong>Tarikh:</strong></div><div class="col-6">${tarikhFormat}</div>
         <div class="col-6"><strong>Hari:</strong></div><div class="col-6">${data.hari || '-'}</div>
-        <div class="col-6"><strong>Masa:</strong></div><div class="col-6">${masaMinit}</div>
+        <div class="col-6"><strong>Masa:</strong></div><div class="col-6">${data.masa || '-'}</div>
         <div class="col-6"><strong>Bil Pelajar:</strong></div><div class="col-6">${data.bilPelajar || '-'}</div>
       </div>
       <hr>
